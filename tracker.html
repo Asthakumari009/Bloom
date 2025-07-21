@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Assignment Tracker</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Firebase SDKs (Required for Firebase to work) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+    <!-- Our Shared Firebase Initializer from the main app -->
+    <script src="app.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #FFFFFF;
+            --surface-color: #FFFFFF;
+            --border-color: #EBEBEB;
+            --text-primary: #37352F;
+            --text-secondary: #9B9A97;
+            --accent-blue: #3B82F6;
+            --accent-yellow: #F59E0B;
+            --font-sans: 'Inter', sans-serif;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: var(--bg-color); color: var(--text-primary); font-family: var(--font-sans); }
+        .page-container { padding: 40px; max-width: 1400px; margin: 0 auto; animation: fadeIn 0.5s ease; }
+        
+        .page-top-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px 0;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            background-color: var(--surface-color);
+            color: var(--text-primary);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02), 0 10px 20px rgba(0,0,0,0.05);
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+        }
+
+        .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.03), 0 15px 30px rgba(0,0,0,0.08);
+            background-color: var(--accent-blue);
+            color: white;
+            border-color: var(--accent-blue);
+        }
+
+        header { display: flex; align-items: center; gap: 15px; margin-bottom: 30px; }
+        header .icon { font-size: 2.5rem; color: #DC3545; }
+        header h1 { font-size: 2.5rem; font-weight: 700; outline: none; border-radius: 5px; padding: 2px 6px; }
+        header h1:focus { box-shadow: 0 0 0 2px var(--accent-blue); background-color: #f3f8fe; }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .widget {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 25px;
+        }
+        .widget h2 {
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+        }
+
+        .chart-container { position: relative; height: 220px; }
+        .gpa-chart-container { display: flex; justify-content: center; align-items: center; position: relative; }
+        .gpa-center-text { position: absolute; text-align: center; }
+        .gpa-center-text .value { font-size: 3.5rem; font-weight: 700; line-height: 1; }
+        .gpa-center-text .label { color: var(--text-secondary); font-size: 0.9rem; }
+        
+        #current-grades-list { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        .course-grade-item { border: 1px solid var(--border-color); padding: 12px; border-radius: 5px; }
+        .course-grade-item .name { font-weight: 500; font-size: 0.9rem; margin-bottom: 3px; display: flex; align-items: center; gap: 6px; }
+        .course-grade-item .name i { font-size: 0.8rem; }
+        .course-grade-item .grade { color: var(--text-secondary); font-size: 0.9rem; margin-left: 20px; }
+        .course-grade-item .grade.valid { color: var(--accent-yellow); }
+        
+        .assignments-container h2 { font-size: 1.2rem; margin-bottom: 15px; color: var(--text-secondary); font-weight: 500; }
+        .assignments-table { width: 100%; border-collapse: collapse; }
+        .assignments-table th, .assignments-table td { padding: 12px 8px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; }
+        .assignments-table th { color: var(--text-secondary); font-weight: 500; }
+        .assignments-table input {
+            border: none; background: transparent; font-family: inherit; font-size: inherit; color: inherit;
+            width: 100%; padding: 4px;
+        }
+        .assignments-table input:focus { outline: 2px solid var(--accent-blue); background-color: #f3f8fe; border-radius: 3px; }
+        
+        .course-group-header td { font-weight: 600; font-size: 1rem; padding-top: 25px; }
+        .course-header-content { display: flex; align-items: center; justify-content: space-between; }
+        .action-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; opacity: 0; transition: opacity 0.2s; font-size: 0.9rem; }
+        tr:hover .action-btn, .course-group-header:hover .action-btn { opacity: 1; }
+        .action-btn:hover { color: var(--text-primary); }
+        
+        #add-course-btn {
+            width: 100%; border: none; color: var(--text-secondary);
+            padding: 12px; text-align: left; background: none;
+            cursor: pointer; font-size: 0.9rem;
+        }
+        #add-course-btn:hover { background-color: #f7f7f7; }
+    </style>
+</head>
+<body>
+    <header class="page-top-header">
+        <a href="index.html" class="back-button">
+            <i class="fa-solid fa-arrow-left"></i>
+            Back to Main Dashboard
+        </a>
+    </header>
+    <div class="page-container">
+        <header>
+            <span class="icon">🎒</span>
+            <h1 id="tracker-main-title" contenteditable="true"></h1>
+        </header>
+        <section class="dashboard">
+            <div class="widget">
+                <h2><i class="far fa-chart-bar"></i> Course Grades</h2>
+                <div class="chart-container"><canvas id="courseGradesChart"></canvas></div>
+            </div>
+            <div class="widget">
+                <h2><i class="far fa-dot-circle"></i> Overall Average</h2>
+                <div class="chart-container gpa-chart-container">
+                    <canvas id="gpaChart"></canvas>
+                    <div class="gpa-center-text">
+                        <div id="gpa-value" class="value">0.0</div>
+                        <div class="label">Average Mark</div>
+                    </div>
+                </div>
+            </div>
+            <div class="widget">
+                <h2><i class="far fa-check-square"></i> Current Grades</h2>
+                <div id="current-grades-list"></div>
+            </div>
+        </section>
+        <section class="assignments-container">
+            <h2><i class="fas fa-bars"></i> All Assignments</h2>
+            <table class="assignments-table">
+                <thead><tr><th style="width: 50%;">Assignment Title</th><th>Grade (%)</th><th>Weight</th><th></th></tr></thead>
+                <tbody id="assignments-body"></tbody>
+            </table>
+            <button id="add-course-btn"><i class="fas fa-plus"></i> Add course</button>
+        </section>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // === 1. GLOBAL STATE & FIREBASE REFS ===
+    let pageId = null;
+    let appData = {}; // This holds the tracker data for the current page
+    
+    const auth = window.firebaseAuth;
+    const db = window.firebaseDb;
+
+    const icons = ['fas fa-leaf', 'fas fa-atom', 'fas fa-calculator', 'fas fa-landmark', 'fas fa-flask'];
+    const defaultData = {
+        title: 'My Assignment Tracker',
+        courses: [
+            { id: `course-${Date.now()}`, name: 'Biology 101: Intro to Life Sciences', icon: 'fas fa-leaf', assignments: [{ id: `assign-${Date.now()}`, title: 'Cell Structure and Functions', grade: 90, weight: 50 }, { id: `assign-${Date.now()+1}`, title: 'Ecosystems Essay', grade: 85, weight: 50 }] },
+            { id: `course-${Date.now()+2}`, name: 'Physics 205: Quantum Mechanics', icon: 'fas fa-atom', assignments: [{ id: `assign-${Date.now()+3}`, title: 'Double Slit Experiment Analysis', grade: 90, weight: 100 }] },
+        ]
+    };
+
+    // === 2. DOM ELEMENTS & CHART SETUP ===
+    const assignmentsBody = document.getElementById('assignments-body');
+    const addCourseBtn = document.getElementById('add-course-btn');
+    const gpaValueEl = document.getElementById('gpa-value');
+    const currentGradesList = document.getElementById('current-grades-list');
+    const mainTitleEl = document.getElementById('tracker-main-title');
+    
+    let courseGradesChart, gpaChart;
+    const courseGradesChartCtx = document.getElementById('courseGradesChart').getContext('2d');
+    const gpaChartCtx = document.getElementById('gpaChart').getContext('2d');
+
+    // === 3. FIREBASE DATA FUNCTIONS ===
+    const debounce = (func, delay) => {
+        let timeout;
+        return (...args) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), delay);
+        };
+    };
+
+    const save = () => {
+        if (pageId && window.saveTemplateData) {
+            window.saveTemplateData(pageId, appData);
+        }
+    };
+    const debouncedSave = debounce(save, 1500);
+
+    const load = async () => {
+        if (!auth.currentUser || !pageId) return;
+        const docRef = db.collection('users').doc(auth.currentUser.uid).collection('templatePages').doc(pageId);
+        try {
+            const doc = await docRef.get();
+            if (doc.exists) {
+                const firestorePage = doc.data();
+                appData = (firestorePage.data && Object.keys(firestorePage.data).length > 0)
+                    ? { ...defaultData, ...firestorePage.data }
+                    : { ...defaultData, title: firestorePage.name };
+            } else {
+                appData = JSON.parse(JSON.stringify(defaultData));
+            }
+            render();
+        } catch (error) {
+            console.error("Error loading tracker data:", error);
+            document.body.innerHTML = "<h1>Error loading data. Please go back and try again.</h1>";
+        }
+    };
+    
+    const saveAndRender = () => { save(); render(); };
+
+    // === 4. LOGIC & CALCULATIONS ===
+    const calculateCourseAverage = (course) => {
+        const graded = course.assignments.filter(a => a.grade != null && a.grade !== '' && a.weight > 0);
+        if (graded.length === 0) return null;
+        const totalWeight = graded.reduce((sum, a) => sum + parseFloat(a.weight), 0);
+        return totalWeight > 0 ? graded.reduce((sum, a) => sum + (parseFloat(a.grade) * parseFloat(a.weight)), 0) / totalWeight : null;
+    };
+    const calculateOverallAverage = () => {
+        const validAverages = appData.courses.map(calculateCourseAverage).filter(avg => avg !== null);
+        return validAverages.length > 0 ? validAverages.reduce((sum, avg) => sum + avg, 0) / validAverages.length : 0;
+    };
+
+    // === 5. CHART & DASHBOARD UPDATES ===
+    function initializeCharts() {
+        courseGradesChart = new Chart(courseGradesChartCtx, { type: 'bar', data: { labels: [], datasets: [{ data: [], backgroundColor: [ '#3B82F680', '#F59E0B80', '#10B98180', '#EF444480' ] }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { display: false }, x: { grid: { display: false } } }, plugins: { legend: { display: false } } } });
+        gpaChart = new Chart(gpaChartCtx, { type: 'doughnut', data: { datasets: [{ data: [0, 100], backgroundColor: ['#3B82F6', '#EBEBEB'], borderWidth: 0, borderRadius: 5 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '80%', plugins: { tooltip: { enabled: false } } } });
+    }
+
+    function updateDashboard() {
+        if (!appData.courses) return;
+        const courseAverages = appData.courses.map(c => ({ name: c.name, avg: calculateCourseAverage(c) }));
+        courseGradesChart.data.labels = courseAverages.map(c => c.name.split(':')[0]);
+        courseGradesChart.data.datasets[0].data = courseAverages.map(c => c.avg);
+        courseGradesChart.update();
+        
+        const overallAvg = calculateOverallAverage();
+        gpaValueEl.textContent = overallAvg.toFixed(1);
+        gpaChart.data.datasets[0].data = [overallAvg, 100 - overallAvg];
+        gpaChart.update();
+
+        currentGradesList.innerHTML = '';
+        appData.courses.forEach(course => {
+            const avg = calculateCourseAverage(course);
+            currentGradesList.innerHTML += `<div class="course-grade-item"><div class="name"><i class="${course.icon}"></i> ${course.name}</div><div class="grade ${avg !== null ? 'valid' : ''}">${avg !== null ? `AVG: ${avg.toFixed(1)}%` : 'No Marks Received'}</div></div>`;
+        });
+    }
+
+    // === 6. MAIN RENDER FUNCTION ===
+    function render() {
+        mainTitleEl.textContent = appData.title;
+        assignmentsBody.innerHTML = '';
+        (appData.courses || []).forEach(course => {
+            const headerRow = document.createElement('tr');
+            headerRow.className = 'course-group-header';
+            headerRow.dataset.courseId = course.id;
+            headerRow.innerHTML = `<td colspan="4">
+                <div class="course-header-content">
+                    <span><i class="${course.icon}"></i> <input type="text" data-key="course-name" value="${course.name}" class="course-name-input"></span>
+                    <span>
+                        <button class="action-btn" data-action="add-assignment" title="Add Assignment"><i class="fas fa-plus"></i></button>
+                        <button class="action-btn" data-action="delete-course" title="Delete Course"><i class="fas fa-trash-alt"></i></button>
+                    </span>
+                </div></td>`;
+            assignmentsBody.appendChild(headerRow);
+            
+            (course.assignments || []).forEach(a => {
+                const row = document.createElement('tr');
+                row.dataset.courseId = course.id; row.dataset.assignmentId = a.id;
+                row.innerHTML = `
+                    <td><input type="text" data-key="title" value="${a.title}"></td>
+                    <td><input type="number" data-key="grade" value="${a.grade ?? ''}" placeholder="--"></td>
+                    <td><input type="number" data-key="weight" value="${a.weight ?? ''}" placeholder="--"></td>
+                    <td><button class="action-btn" data-action="delete-assignment" title="Delete Assignment"><i class="fas fa-trash-alt"></i></button></td>`;
+                assignmentsBody.appendChild(row);
+            });
+        });
+        updateDashboard();
+    }
+    
+    // === 7. EVENT HANDLERS ===
+    addCourseBtn.addEventListener('click', () => {
+        const name = prompt('Enter new course name:');
+        if (name && name.trim() !== '') {
+            appData.courses.push({ id: `course-${Date.now()}`, name: name.trim(), icon: icons[appData.courses.length % icons.length], assignments: [] });
+            saveAndRender();
+        }
+    });
+
+    assignmentsBody.addEventListener('click', e => {
+        const btn = e.target.closest('.action-btn');
+        if (!btn) return;
+        
+        const action = btn.dataset.action;
+        const row = btn.closest('tr');
+        const courseId = row.dataset.courseId;
+
+        if (action === 'add-assignment') {
+            const course = appData.courses.find(c => c.id === courseId);
+            course.assignments.push({ id: `assign-${Date.now()}`, title: 'New Assignment', grade: null, weight: 0 });
+            saveAndRender();
+        } else if (action === 'delete-assignment') {
+            if (confirm('Delete this assignment?')) {
+                const course = appData.courses.find(c => c.id === courseId);
+                const assignmentId = row.dataset.assignmentId;
+                course.assignments = course.assignments.filter(a => a.id !== assignmentId);
+                saveAndRender();
+            }
+        } else if (action === 'delete-course') {
+            if (confirm('Are you sure you want to delete this entire course and all its assignments?')) {
+                appData.courses = appData.courses.filter(c => c.id !== courseId);
+                saveAndRender();
+            }
+        }
+    });
+
+    assignmentsBody.addEventListener('input', (e) => {
+        const input = e.target;
+        const row = input.closest('tr');
+        const courseId = row.dataset.courseId;
+        const course = appData.courses.find(c => c.id === courseId);
+        
+        if (input.dataset.key === 'course-name') {
+            course.name = input.value;
+        } else {
+            const assignmentId = row.dataset.assignmentId;
+            const assignment = course.assignments.find(a => a.id === assignmentId);
+            assignment[input.dataset.key] = (input.type === 'text') ? input.value : (input.value === '' ? null : parseFloat(input.value));
+        }
+        debouncedSave();
+        updateDashboard(); // Update charts and averages on every input
+    });
+    
+    mainTitleEl.addEventListener('blur', () => {
+        if (appData.title !== mainTitleEl.textContent) {
+            appData.title = mainTitleEl.textContent;
+            save();
+        }
+    });
+    
+    // === 8. INITIALIZATION ===
+    if (!auth || !db) {
+        console.error("Firebase is not initialized. Make sure app.js is loaded correctly.");
+        return;
+    }
+
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            const params = new URLSearchParams(window.location.search);
+            pageId = params.get('id');
+            if (pageId) {
+                initializeCharts();
+                load();
+            } else {
+                document.body.innerHTML = '<h1>Error: Page ID missing. Please return to your dashboard.</h1>';
+            }
+        } else {
+            window.location.href = 'index.html';
+        }
+    });
+});
+</script>
+</body>
+</html>

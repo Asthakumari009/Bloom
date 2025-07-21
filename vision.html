@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>🌟 My Yearly Vision Board</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="app.js"></script>
+
+    <style>
+        :root {
+            --bg: linear-gradient(135deg, #f0f8ff, #e6e6fa);
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(200, 220, 255, 0.7);
+            --text: #4a5568;
+            --primary: #b19cd9;
+            --accent: #ffb7b2;
+            --radius: 16px;
+            --shadow: 0 10px 25px rgba(0,0,0,0.1);
+            --hover-scale: 1.03;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+            position: relative;
+            z-index: 1;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="%23f472b6" stroke="none"><path d="M12 .587l3.695 7.502 8.283 1.203-5.992 5.847 1.417 8.257L12 18.897l-7.303 3.844 1.417-8.257-5.992-5.847 8.283-1.203L12 .587z"/></svg>') 8 8, auto;
+        }
+        .page-top-header { display: flex; justify-content: flex-start; align-items: center; padding: 25px 40px 0; max-width: 1400px; width: 100%; margin: 0 auto; position: relative; z-index: 3; }
+        .back-button { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; background-color: var(--card-bg); color: var(--text); padding: 12px 22px; border-radius: 15px; font-weight: 600; box-shadow: var(--shadow); transition: all 0.3s ease; border: 1px solid var(--glass-border); position: relative; overflow: hidden; }
+        .back-button:hover { transform: translateY(-5px); box-shadow: 0 12px 28px rgba(0,0,0,0.12); background-color: var(--primary); color: white; border-color: var(--primary); }
+        .back-button::before { content: ''; position: absolute; top: 50%; left: 50%; width: 0; height: 0; background: rgba(255, 255, 255, 0.2); border-radius: 50%; transform: translate(-50%, -50%); transition: width 0.4s ease-out, height 0.4s ease-out, opacity 0.4s ease-out; opacity: 0; z-index: 0; }
+        .back-button:hover::before { width: 150%; height: 150%; opacity: 1; }
+        .back-button i, .back-button span { position: relative; z-index: 1; }
+        
+        .cloud-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; z-index: 0; pointer-events: none; }
+        .cloud { position: absolute; background: #fff; border-radius: 50%; opacity: 1; filter: blur(1px); animation: moveClouds linear infinite; box-shadow: 0 0 15px 5px rgba(255, 255, 255, 0.7), 0 0 30px 10px rgba(173, 216, 230, 0.3); left: 100%; }
+        .cloud::before, .cloud::after { content: ''; position: absolute; background: #fff; border-radius: 50%; }
+        .cloud:nth-child(1) { width: 150px; height: 90px; top: 10%; animation-duration: 25s; animation-delay: 0s; } .cloud:nth-child(1)::before { width: 100px; height: 100px; top: -40px; left: 20px; } .cloud:nth-child(1)::after { width: 70px; height: 70px; top: -15px; right: 10px; }
+        .cloud:nth-child(2) { width: 200px; height: 120px; top: 30%; animation-duration: 45s; animation-delay: -5s; } .cloud:nth-child(2)::before { width: 130px; height: 130px; top: -60px; left: 30px; } .cloud:nth-child(2)::after { width: 90px; height: 90px; top: -20px; right: 20px; }
+        .cloud:nth-child(3) { width: 120px; height: 70px; top: 60%; animation-duration: 35s; animation-delay: -10s; } .cloud:nth-child(3)::before { width: 80px; height: 80px; top: -30px; left: 15px; } .cloud:nth-child(3)::after { width: 60px; height: 60px; top: -10px; right: 5px; }
+        
+        @keyframes moveClouds { 0% { transform: translateX(0); } 100% { transform: translateX(-150vw); } }
+
+        header { text-align: center; padding: 2rem 1rem 1.5rem; width: 100%; max-width: 1200px; position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        header h1 { font-size: 2.8rem; margin: 0; color: #8a6fbb; text-shadow: 1px 1px 3px rgba(0,0,0,0.05); }
+        .header-controls { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 1.5rem; width: 100%; flex-wrap: wrap; }
+        .year-selector { display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+        .year-selector label { font-size: 1.1rem; font-weight: 600; color: #6a8eab; }
+        .year-selector select { padding: 0.7rem 2.5rem 0.7rem 1.2rem; border-radius: var(--radius); font-size: 1.05rem; border: 2px solid var(--primary); background: var(--primary); color: white; font-weight: 600; box-shadow: 0 6px 15px rgba(0,0,0,0.15); cursor: pointer; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22white%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-6.5%200-12.3%203.2-16.1%208.1-3.8%204.9-4.9%2011-3.1%2016.2l128.8%20128.8c3.7%203.7%208.5%205.6%2013.3%205.6s9.6-1.9%2013.3-5.6L287%2091c3.8-5.2%202.7-11.3-1.1-16.2z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 1em top 50%; background-size: 0.65em auto; }
+        #addCardBtn { padding: 0.8rem 1.8rem; background: var(--accent); border: none; border-radius: 9999px; font-weight: 600; font-size: 1.1rem; color: white; cursor: pointer; box-shadow: 0 6px 15px rgba(0,0,0,0.15); transition: background 0.3s ease, transform 0.2s ease; position: relative; z-index: 2; }
+        #addCardBtn:hover { background: #e09b97; transform: translateY(-2px); }
+        main { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; padding: 2rem; width: 100%; max-width: 1200px; flex-grow: 1; position: relative; z-index: 2; }
+        .card { background: var(--card-bg); border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 1.5rem; box-shadow: var(--shadow); backdrop-filter: blur(16px); transition: transform 0.3s ease; position: relative; display: flex; flex-direction: column; justify-content: space-between; min-height: 250px; }
+        .card:hover { transform: scale(var(--hover-scale)); }
+        .card h2 { font-size: 1.3rem; margin-bottom: 0.6rem; color: #f472b6; font-weight: 600; }
+        .card p { font-size: 1rem; margin-bottom: 1rem; color: var(--text); flex-grow: 1; }
+        .image-upload-area {
+            position: relative;
+            width: 100%;
+            min-height: 200px;
+            background-color: rgba(255, 255, 255, 0.4);
+            border: 2px dashed var(--primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            overflow: hidden;
+            transition: background-color 0.3s ease;
+            margin-top: 1rem;
+            padding: 1rem;
+        }
+        .image-upload-area:hover { background-color: rgba(255, 255, 255, 0.7); }
+        .image-upload-area .preview { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .image-upload-area .placeholder-text { color: #f472b6; font-weight: 600; font-size: 1.1rem; text-align: center; padding: 1rem; z-index: 1; }
+        .imageInput { display: none; }
+        .delete-btn { position: absolute; top: 10px; right: 10px; background: rgba(255, 255, 255, 0.8); border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 50%; font-size: 1rem; cursor: pointer; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; color: #f472b6; box-shadow: 0 2px 5px rgba(0,0,0,0.1); opacity: 0; pointer-events: none; transition: opacity 0.3s ease, transform 0.2s ease; z-index: 10; }
+        .card:hover .delete-btn { opacity: 1; pointer-events: auto; }
+        .delete-btn:hover { background: #ffe0f0; transform: scale(1.1); }
+        [contenteditable="true"]:focus { outline: 2px dashed var(--primary); border-radius: 8px; padding: 2px 4px; }
+        .hidden { display: none !important; }
+        .empty-state { text-align: center; padding: 3rem 1rem; color: #94a3b8; font-size: 1.2rem; font-weight: 500; grid-column: 1 / -1; }
+        .upload-indicator { display: none !important; }
+        .upload-indicator span { font-weight: 600; color: var(--primary); }
+    </style>
+</head>
+<body>
+    <div class="cloud-container">
+        <div class="cloud"></div>
+        <div class="cloud"></div>
+        <div class="cloud"></div>
+    </div>
+
+    <header class="page-top-header">
+        <a href="index.html" class="back-button">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>Back to Main Dashboard</span>
+        </a>
+    </header>
+
+    <header>
+        <h1 id="main-title" contenteditable="true">🌟 My Yearly Vision Board</h1>
+        <div class="header-controls">
+            <div class="year-selector">
+                <label for="year">Select Year: </label>
+                <select id="year"></select>
+            </div>
+            <button id="addCardBtn">➕ Add Vision</button>
+        </div>
+    </header>
+
+    <main id="visionBoard"></main>
+
+    <div id="confirmModalOverlay" class="modal-overlay hidden">
+    </div>
+
+    <template id="cardTemplate">
+        <div class="card">
+            <button class="delete-btn">✖</button>
+            <h2 contenteditable="true"></h2>
+            <p contenteditable="true"></p>
+            <input type="file" accept="image/*" class="imageInput" />
+            <div class="image-upload-area">
+                <img src="" alt="vision image" class="preview hidden" />
+                <div class="placeholder-text">Click to Add Image ✨</div>
+            </div>
+        </div>
+    </template>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- 1. GLOBAL STATE & FIREBASE REFS ---
+        let pageId = null;
+        let visionData = {};
+        let currentSelectedYear = new Date().getFullYear().toString(); 
+
+        const auth = window.firebaseAuth;
+        const db = window.firebaseDb;
+
+        // --- 2. DOM ELEMENTS ---
+        const board = document.getElementById("visionBoard");
+        const addBtn = document.getElementById("addCardBtn");
+        const yearSelect = document.getElementById("year");
+        const mainTitleEl = document.getElementById("main-title");
+        const template = document.getElementById("cardTemplate");
+
+        // --- 3. DEFAULT DATA ---
+        const getDefaultVisionData = () => {
+            const currentYear = new Date().getFullYear().toString();
+            const defaultData = {};
+            defaultData[currentYear] = [
+                { id: `vision-${Date.now()}-1`, title: "🏡 Dream House", text: "A cozy modern apartment near nature 🌿", img: "" },
+                { id: `vision-${Date.now()}-2`, title: "💼 Career Move", text: "Launch my freelance creative business.", img: "" }
+            ];
+            return defaultData;
+        };
+
+        // --- 4. FIREBASE DATA FUNCTIONS ---
+        const saveData = () => {
+            if (pageId && window.saveTemplateData) {
+                window.saveTemplateData(pageId, visionData);
+                localStorage.setItem('pageUpdate', JSON.stringify({
+                    pageId: pageId,
+                    title: mainTitleEl.textContent,
+                    timestamp: Date.now(),
+                    message: `Vision Board "${mainTitleEl.textContent}" was updated.`
+                }));
+            }
+        };
+
+        const debouncedSave = debounce(saveData, 1500);
+
+        const loadData = async () => {
+            if (!auth.currentUser || !pageId) return;
+            const docRef = db.collection('users').doc(auth.currentUser.uid).collection('templatePages').doc(pageId);
+            try {
+                const doc = await docRef.get();
+                if (doc.exists) {
+                    const firestorePage = doc.data();
+                    mainTitleEl.textContent = firestorePage.name || "🌟 My Yearly Vision Board";
+                    
+                    if (firestorePage.data && typeof firestorePage.data === 'object' && !Array.isArray(firestorePage.data)) {
+                        visionData = firestorePage.data;
+                    } else {
+                        visionData = getDefaultVisionData();
+                    }
+                } else {
+                    mainTitleEl.textContent = "🌟 My Yearly Vision Board";
+                    visionData = getDefaultVisionData();
+                }
+
+                const yearsWithData = Object.keys(visionData)
+                                        .map(Number)
+                                        .filter(Number.isFinite);
+                
+                const currentYearNum = new Date().getFullYear();
+                const maxDataYear = yearsWithData.length > 0 ? Math.max(...yearsWithData) : currentYearNum;
+                currentSelectedYear = Math.max(currentYearNum, maxDataYear).toString();
+                
+                if (!visionData[currentSelectedYear]) {
+                    visionData[currentSelectedYear] = [];
+                }
+
+                populateYearSelect();
+                renderVisionBoard();
+            } catch (error) {
+                console.error("Error loading vision board data:", error);
+                board.innerHTML = "<h1>Error loading your vision board. Please try again.</h1>";
+            }
+        };
+
+        // --- 5. RENDER FUNCTIONS ---
+        const populateYearSelect = () => {
+            yearSelect.innerHTML = '';
+            const currentYearNum = new Date().getFullYear();
+            const futureYearsLimit = 50;
+
+            const yearsToDisplay = new Set();
+
+            for (let year = currentYearNum; year <= currentYearNum + futureYearsLimit; year++) {
+                yearsToDisplay.add(year);
+            }
+
+            Object.keys(visionData)
+                .map(Number)
+                .filter(Number.isFinite)
+                .forEach(year => yearsToDisplay.add(year));
+
+            const sortedYears = Array.from(yearsToDisplay).sort((a, b) => b - a);
+
+            sortedYears.forEach(year => {
+                const option = document.createElement('option');
+                option.value = year.toString();
+                option.textContent = year.toString();
+                option.selected = (year.toString() === currentSelectedYear);
+                yearSelect.appendChild(option);
+            });
+
+            yearSelect.value = currentSelectedYear;
+        };
+
+        const renderVisionBoard = () => {
+            board.innerHTML = "";
+            const visions = visionData[currentSelectedYear];
+            
+            if (Array.isArray(visions) && visions.length > 0) {
+                visions.forEach(vision => createCard(vision));
+            } else {
+                board.innerHTML = `<div class="empty-state"><p>No visions for ${currentSelectedYear} yet! ✨</p><p>Click "➕ Add Vision" to start manifesting.</p></div>`;
+            }
+        };
+
+        const createCard = (vision) => {
+            const clone = template.content.cloneNode(true);
+            const card = clone.querySelector(".card");
+            card.dataset.cardId = vision.id;
+            card.querySelector("h2").innerText = vision.title;
+            card.querySelector("p").innerText = vision.text;
+            const img = card.querySelector(".preview");
+            const placeholder = card.querySelector(".placeholder-text");
+
+            if (vision.img) {
+                img.src = vision.img;
+                img.classList.remove("hidden");
+                placeholder.classList.add("hidden");
+            } else {
+                img.classList.add("hidden");
+                placeholder.classList.remove("hidden");
+            }
+            board.appendChild(card);
+        };
+        
+        // --- 6. EVENT HANDLERS ---
+        board.addEventListener('click', e => {
+            const card = e.target.closest('.card');
+            if (!card) return;
+            const visionId = card.dataset.cardId;
+
+            if (e.target.closest('.delete-btn')) {
+                if (confirm("Are you sure you want to delete this vision?")) {
+                    visionData[currentSelectedYear] = visionData[currentSelectedYear].filter(v => v.id !== visionId);
+                    saveData();
+                    renderVisionBoard();
+                }
+            } else if (e.target.closest('.image-upload-area')) {
+                card.querySelector('.imageInput').click();
+            }
+        });
+
+        board.addEventListener('change', async e => {
+            const card = e.target.closest('.card');
+            if (!card || !e.target.matches('.imageInput')) return;
+            const visionId = card.dataset.cardId;
+            const file = e.target.files[0];
+            if (!file) {
+                console.log("No file selected.");
+                return;
+            }
+
+            const imgPreview = card.querySelector('.preview');
+            const placeholderText = card.querySelector('.placeholder-text');
+
+            const reader = new FileReader();
+
+            reader.onloadend = () => {
+                const base64String = reader.result;
+                
+                const targetVision = visionData[currentSelectedYear].find(v => v.id === visionId);
+                if (targetVision) {
+                    targetVision.img = base64String;
+                    saveData();
+
+                    imgPreview.src = base64String;
+                    imgPreview.classList.remove('hidden');
+                    placeholderText.classList.add('hidden'); 
+                    console.log("Image successfully loaded to local state and preview updated.");
+                }
+            };
+
+            reader.onerror = (error) => {
+                console.error("FileReader error:", error);
+                alert("Could not read image file.");
+                imgPreview.classList.add('hidden');
+                placeholderText.classList.remove('hidden');
+            };
+
+            reader.readAsDataURL(file);
+        });
+        
+        board.addEventListener('blur', e => {
+            const el = e.target;
+            const card = el.closest('.card');
+            if (!card || !el.isContentEditable) return;
+            const visionId = card.dataset.cardId;
+            const targetVision = visionData[currentSelectedYear].find(v => v.id === visionId);
+            if (!targetVision) return;
+
+            if (el.tagName === 'H2' && targetVision.title !== el.textContent) {
+                targetVision.title = el.textContent;
+                debouncedSave();
+            } else if (el.tagName === 'P' && targetVision.text !== el.textContent) {
+                targetVision.text = el.textContent;
+                debouncedSave();
+            }
+        }, true);
+        
+        addBtn.addEventListener("click", () => {
+            if (!visionData[currentSelectedYear] || !Array.isArray(visionData[currentSelectedYear])) {
+                visionData[currentSelectedYear] = [];
+            }
+            const newVision = {
+                id: `vision-${Date.now()}`,
+                title: "🪄 New Vision",
+                text: "This is what I want to manifest ✨",
+                img: ""
+            };
+            visionData[currentSelectedYear].push(newVision);
+            saveData();
+            renderVisionBoard();
+        });
+
+        yearSelect.addEventListener("change", () => {
+            currentSelectedYear = yearSelect.value;
+            if (!visionData[currentSelectedYear]) {
+                visionData[currentSelectedYear] = [];
+            }
+            renderVisionBoard();
+        });
+
+        mainTitleEl.addEventListener('blur', () => {
+            const newTitle = mainTitleEl.textContent.trim();
+            if (pageId && auth.currentUser && newTitle) {
+                db.collection('users').doc(auth.currentUser.uid).collection('templatePages').doc(pageId).update({ name: newTitle })
+                    .then(() => console.log("Main title (name) updated in Firestore."))
+                    .catch(error => console.error("Error updating main title:", error));
+            }
+        });
+
+        // --- 7. UTILITY FUNCTIONS ---
+        function debounce(func, delay) {
+            let timeout;
+            return (...args) => {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), delay);
+            };
+        };
+        
+        // --- 8. AUTHENTICATION GATE & INITIALIZATION ---
+        if (!auth || !db) { 
+            console.error("Firebase Auth or Firestore is not initialized. Make sure app.js is loaded correctly.");
+            document.body.innerHTML = '<h1>Error: Core Firebase services are not available. Please check your internet connection or try again later.</h1>';
+            return;
+        }
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                const params = new URLSearchParams(window.location.search);
+                pageId = params.get('id');
+                if (pageId) {
+                    loadData();
+                } else {
+                    document.body.innerHTML = '<h1>Error: Page ID missing. Please return to your dashboard.</h1>';
+                }
+            } else {
+                window.location.href = 'index.html';
+            }
+        });
+    });
+    </script>
+</body>
+</html>

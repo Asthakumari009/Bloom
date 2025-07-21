@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bloom</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Combined font links for Lora (headings) and Poppins (body) -->
+    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Add this line for the new Pomodoro font -->
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Existing font links -->
+    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+        
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Your main application's CSS -->
+    <link rel="stylesheet" href="style.css">
+    <!-- NEW: Pomodoro Timer specific CSS -->
+    <link rel="stylesheet" href="pomodoro.css">
+    
+    <!-- Firebase SDKs -->
+    <!-- Using the compat version for wider browser support with older examples -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <!-- SortableJS for drag-and-drop -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    
+</head>
+<body data-theme="dark">
+
+    <!-- Splash Screen -->
+    <div id="welcome-splash">
+        <div class="welcome-content">
+            <h1 class="reveal-main">Welcome to Bloom</h1>
+            <p class="reveal-tagline">A Space to Think, Plan, and Bloom</p>
+        </div>
+    </div>
+
+    <!-- App Loader -->
+    <div id="app-loader" class="app-loader">
+        <div class="spinner"></div>
+        <p>Loading...</p>
+    </div>
+
+    <!-- Toast Notification Element -->
+    <div id="toast-notification" class="toast-notification">
+        <span id="toast-icon"></span>
+        <p id="toast-message"></p>
+    </div>
+
+    <!-- Mobile Menu Toggle - This is now hidden by CSS as per request -->
+    <button class="menu-toggle" id="menu-toggle" aria-label="Open sidebar">☰</button>
+
+    <aside class="sidebar" id="sidebar">
+        <div>
+            <div class="sidebar-header">
+                <!-- Assuming you have a Bloom logo image, adjust path if needed -->
+                
+                <h3>🌸 Bloom</h3>
+            </div>
+            <div class="user-profile">
+                <!-- "Hi, astha" greeting will be populated here by JS -->
+                <span id="sidebar-greeting">👋 Hi, Guest</span>
+            </div>
+            <nav class="nav-list">
+                <a href="#" class="nav-item active" data-target="dashboard"><span>🚀</span> Dashboard</a>
+                <!-- NEW: Inbox Nav Item with notification dot -->
+                <a href="#" class="nav-item" data-target="inbox">
+                    <span>📥</span> Inbox
+                    <span class="notification-dot" id="notification-dot"></span>
+                </a>
+                <a href="#" class="nav-item" data-target="settings"><span>⚙️</span> Settings</a>
+            </nav>
+        </div>
+        <div class="sidebar-footer">
+             <div id="auth-nav-links">
+                <a href="#" class="nav-item" data-target="register"><span>🚀</span> Create Account</a>
+                <a href="#" class="nav-item" data-target="login"><span>🔑</span> Login</a>
+            </div>
+            <button id="logout-button" class="form-button" style="display: none;"><span>👋</span> Logout</button>
+        </div>
+    </aside>
+
+    <main class="main-content" id="main-content">
+        <section id="dashboard" class="page active">
+            <header class="page-header">
+                <!-- Main greeting will be populated here by JS -->
+                <h1 id="main-greeting">Good Evening, Astha! 👋</h1>
+                <div class="header-actions">
+                    <button id="getting-started-btn" class="toolbar-btn primary">✨ Getting Started</button>
+                </div>
+            </header>
+            
+            <!-- NEW: Container for top-level widgets like Pomodoro and Quotes -->
+            <div class="dashboard-widgets-container">
+
+                <!-- Pomodoro Timer Card -->
+                <div class="pomodoro-timer-card">
+                    <div class="pomodoro-modes">
+                        <button class="pomodoro-mode-btn active" data-mode="work" id="work-mode-btn">Work</button>
+                        <button class="pomodoro-mode-btn" data-mode="short-break" id="short-break-mode-btn">Short Break</button>
+                        <button class="pomodoro-mode-btn" data-mode="long-break" id="long-break-mode-btn">Long Break</button>
+                    </div>
+                    <div id="time-display" class="pomodoro-time">25:00</div>
+                    <div class="pomodoro-controls">
+                        <button class="pomodoro-control-btn" id="start-btn">Start</button>
+                        <button class="pomodoro-control-btn" id="pause-btn" style="display: none;">Pause</button>
+                        <button class="pomodoro-control-btn" id="reset-btn">Reset</button>
+                    </div>
+                    <div id="session-counter" class="pomodoro-sessions">Sessions: 0</div>
+                </div>
+                <!-- END Pomodoro Timer Card -->
+
+                <!-- NEW: Motivational Quote Card -->
+                <div class="quotes-card">
+                    <div class="quote-content">
+                        <p id="quote-text" class="quote-text">Loading a dash of inspiration...</p>
+                        <span id="quote-author" class="quote-author"></span>
+                    </div>
+                </div>
+                <!-- END Motivational Quote Card -->
+
+            </div>
+            <!-- END Widget Container -->
+
+            <!-- Dynamic page cards container -->
+            <div id="dashboard-pages-container" class="dashboard-grid">
+                <!-- Dynamic page cards will be appended here by app.js -->
+                <div class="page-card">
+                    <div class="card-icon-display">
+                        <span>📖</span>
+                    </div>
+                    <h3>New Table</h3>
+                    <p>0 items</p>
+                    <button class="card-action-delete-btn" title="Delete Page">🗑️</button>
+                </div>
+            </div>
+            <!-- End of dashboard-grid -->
+            
+        </section>
+
+        <!-- NEW: Inbox Page Section -->
+        <section id="inbox" class="page">
+            <header class="page-header">
+                <h1>📥 Your Inbox</h1>
+                <div class="header-actions">
+                    <!-- NEW: Clear All Notifications Button -->
+                    <button id="clear-all-notifications-btn" class="toolbar-btn">Clear All</button>
+                </div>
+            </header>
+            <div id="inbox-notifications-container" class="notification-list">
+                <!-- Notifications will be dynamically rendered here by app.js -->
+                <div class="empty-state" id="inbox-empty-state">
+                    <h3>All caught up!</h3>
+                    <p>No new reminders or notifications.</p>
+                </div>
+            </div>
+        </section>
+
+
+        <section id="page-editor" class="page">
+            <div id="page-editor-content" class="editor-area">
+                <!-- The dynamic page editor for native pages (tables, lists) will be rendered here by app.js -->
+            </div>
+        </section>
+        
+        <section id="settings" class="page">
+            <header class="page-header">
+                <h1>Settings</h1>
+                <p>Customize your experience.</p>
+            </header>
+            <div class="settings-content">
+                <!-- Appearance Section -->
+                <div class="settings-section">
+                    <h2 class="settings-section-title">Appearance</h2>
+                    <div class="setting-item">
+                        <span class="setting-label">Theme Mode</span>
+                        <button class="theme-dynamic-island" id="theme-dynamic-island-switcher">
+                            <div class="island-content">
+                                <!-- Sun icon: visible when light theme is active -->
+                                <span class="theme-icon sun-icon">☀️</span>
+                                <!-- Moon icon: visible when dark theme is active -->
+                                <span class="theme-icon moon-icon">🌙</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Account Section -->
+                <div class="settings-section">
+                    <h2 class="settings-section-title">Account</h2>
+                    <div class="setting-item">
+                        <span class="setting-label">Change Password</span>
+                        <button id="change-password-btn" class="settings-action-btn primary">Update</button>
+                    </div>
+                    <div class="setting-item">
+                        <span class="setting-label">Account Deletion</span>
+                        <button id="delete-account-btn" class="settings-action-btn danger">Delete Account</button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Auth Pages -->
+        <section id="register" class="page auth-page">
+            <div class="auth-container">
+                <div class="auth-panel auth-image-panel">
+                    <div class="auth-image-content">
+                        <h2>Start your journey.</h2>
+                        <p>Organize, plan, and achieve with a clear mind.</p>
+                    </div>
+                </div>
+                <div class="auth-panel auth-form-panel">
+                    <form id="register-form" class="auth-form">
+                        <header>
+                            <h1>Create an Account 🌸</h1>
+                            <p>Join Bloom to organize your life.</p>
+                        </header>
+                        <div class="form-group"><label for="register-username">Username</label><input type="text" id="register-username" placeholder="Your Name" required></div>
+                        <div class="form-group"><label for="register-email">Email</label><input type="email" id="register-email" placeholder="you@example.com" required></div>
+                        <div class="form-group"><label for="register-password">Password</label><input type="password" id="register-password" placeholder="••••••••" required minlength="6"></div>
+                        <button type="submit" class="form-button">Create Account</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+        <section id="login" class="page auth-page">
+            <div class="auth-container">
+                 <div class="auth-panel auth-image-panel">
+                    <div class="auth-image-content">
+                        <h2>Welcome Back.</h2>
+                        <p>Your space for clarity and focus awaits.</p>
+                    </div>
+                </div>
+                <div class="auth-panel auth-form-panel">
+                    <form id="login-form" class="auth-form">
+                        <header>
+                            <h1>Welcome Back! 👋</h1>
+                            <p>Login to access your dashboard.</p>
+                        </header>
+                        <div class="form-group"><label for="login-email">Email</label><input type="email" id="login-email" placeholder="you@example.com" required></div>
+                        <div class="form-group"><label for="login-password">Password</label><input type="password" id="login-password" placeholder="••••••••" required></div>
+                        <button type="submit" class="form-button">Login</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <!-- MODALS -->
+    <div id="getting-started-modal" class="modal">
+        <div class="modal-bg modal-close"></div>
+        <div class="modal-content">
+            <button class="modal-close-btn modal-close">×</button>
+            <h2>What do you want to create?</h2>
+            <div class="modal-option-group">
+                <button data-type="table" class="modal-btn">🧾 Table</button>
+                <button data-type="list" class="modal-btn">📋 List</button>
+                <button data-type="template" class="modal-btn">✨ Choose Template</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="template-select-modal" class="modal">
+        <div class="modal-bg modal-close"></div>
+        <div class="modal-content">
+            <button class="modal-close-btn modal-close">×</button>
+            <h2>Choose a Template</h2>
+            <div class="modal-option-group template-selection-grid"> <!-- Added template-selection-grid class here -->
+                <!-- Each template is now a card-like link -->
+                <a href="dashboard.html" class="template-card" data-template-id="template-dashboard" data-template-file="dashboard.html">
+                    <div class="template-card-icon">🎓</div>
+                    <h4 class="template-card-title">Student Dashboard</h4>
+                    <p class="template-card-description">Manage courses, tasks & goals efficiently.</p>
+                </a>
+                <a href="tracker.html" class="template-card" data-template-id="pro-tracker" data-template-file="tracker.html">
+                    <div class="template-card-icon">📊</div>
+                    <h4 class="template-card-title">Pro Tracker</h4>
+                    <p class="template-card-description">Track habits, projects & assignments.</p>
+                </a>
+                <a href="shopping-cart.html" class="template-card" data-template-id="shopping-cart" data-template-file="shopping-cart.html">
+                    <div class="template-card-icon">🛒</div>
+                    <h4 class="template-card-title">Weekly Shopping Planner</h4>
+                    <p class="template-card-description">Plan groceries and manage your budget.</p>
+                </a>
+                <a href="workspace.html" class="template-card" data-template-id="workspace" data-template-file="workspace.html">
+                    <div class="template-card-icon">💼</div>
+                    <h4 class="template-card-title">Personal Workspace</h4>
+                    <p class="template-card-description">A dedicated space for your study or work.</p>
+                </a>
+                <a href="vision.html" class="template-card" data-template-id="yearly-vision" data-template-file="vision.html">
+                    <div class="template-card-icon">🌟</div>
+                    <h4 class="template-card-title">Yearly Vision</h4>
+                    <p class="template-card-description">Set and visualize your annual aspirations.</p>
+                </a>
+                <!-- Add more template cards here following the same structure -->
+            </div>
+        </div>
+    </div>
+
+
+    <div id="delete-confirm-modal" class="modal">
+        <div class="modal-bg modal-close"></div>
+        <div class="modal-content">
+            <button class="modal-close-btn modal-close">×</button>
+            <h2>Are you sure?</h2>
+            <p>This will permanently delete "<strong id="delete-page-name"></strong>". This action cannot be undone.</p>
+            <div class="modal-actions">
+                <button class="modal-btn modal-close">Cancel</button>
+                <button id="confirm-delete-btn" class="modal-btn danger">Yes, Delete</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- NEW: Modals for Change Password and Delete Account confirmation -->
+    <div id="change-password-modal" class="modal">
+        <div class="modal-bg modal-close"></div>
+        <div class="modal-content">
+            <h3>Change Password</h3>
+            <p>For security, please re-enter your current password to proceed.</p>
+            <form id="reauthenticate-form">
+                <input type="password" id="current-password-reauth" placeholder="Current Password" required>
+                <input type="password" id="new-password-input" placeholder="New Password (min 6 chars)" required minlength="6">
+                <input type="password" id="confirm-new-password-input" placeholder="Confirm New Password" required>
+                <div class="modal-actions">
+                    <button type="button" class="modal-close">Cancel</button>
+                    <button type="submit" class="primary">Change Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="delete-account-confirm-modal" class="modal">
+        <div class="modal-bg modal-close"></div>
+        <div class="modal-content">
+            <h3>Confirm Account Deletion</h3>
+            <p>This action is permanent and cannot be undone. All your pages and data will be lost.</p>
+            <p>Please re-enter your password to confirm:</p>
+            <form id="confirm-delete-account-form">
+                <input type="password" id="current-password-delete" placeholder="Your Password" required>
+                <div class="modal-actions">
+                    <button type="button" class="modal-close">Cancel</button>
+                    <button type="submit" class="danger">Delete My Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Global dropdown menus for the page editor -->
+    <div id="filter-menu" class="dropdown-menu"></div>
+    <div id="sort-menu" class="dropdown-menu"></div>
+    <div id="property-select-menu" class="dropdown-menu property-select-menu"></div>
+    <!-- property-header-menu is dynamically created in JS, attached to body -->
+
+    <!-- Your main application's JavaScript -->
+    <script src="app.js"></script>
+    <!-- NEW: Pomodoro Timer specific JavaScript -->
+    <script src="pomodoro.js"></script>
+</body>
+</html>

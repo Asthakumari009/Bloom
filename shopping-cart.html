@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- AGGRESSIVE CACHE CONTROL FOR DEVELOPMENT -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    
+    <title>Weekly Shopping Planner</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+
+    <!-- Firebase SDKs (Required for Firebase to work) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+    <!-- Our Shared Firebase Initializer from the main app -->
+    <script src="app.js"></script>
+
+    <style>
+        :root {
+            /* Cuter & Softer Color Palette */
+            --bg-color: #fcefe7; /* Soft peach/cream background */
+            --surface-color: #ffffff; /* Pure white for main elements */
+            --border-color: #f0e1d8; /* Muted peach border */
+            --text-primary: #5a4b42; /* Soft dark brown for main text */
+            --text-secondary: #a0928a; /* Lighter brown for secondary text */
+            
+            --accent-main: #ff9a8d; /* Coral pink - sweet and inviting */
+            --accent-light: #ffc2b3; /* Lighter coral pink */
+            --accent-dark: #cc7b71; /* Darker coral pink */
+
+            --accent-green: #90d4c0; /* Soft mint green - calm and fresh */
+            --accent-yellow: #fdd88d; /* Mellow yellow - warm and cheerful */
+            --accent-blue: #9ac2ff; /* Sky blue - gentle and clear */
+            --accent-red: #ff7f7f; /* Soft red for alerts/delete */
+
+            --border-radius: 25px; /* Even more rounded corners for softness */
+            --shadow: 0 10px 30px rgba(0,0,0,0.08), 0 20px 40px rgba(0,0,0,0.1); /* Soft, diffused shadow */
+            --shadow-hover: 0 15px 40px rgba(0,0,0,0.1), 0 25px 50px rgba(0,0,0,0.15); /* Slightly deeper on hover */
+            --font-serif: 'Playfair Display', serif;
+            --font-sans: 'Inter', sans-serif;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+        @keyframes slideInUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-color); /* Applied new background color */
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* --- Back Button --- */
+        .page-top-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 30px 40px 0; /* More padding */
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px; /* More gap */
+            text-decoration: none;
+            background-color: var(--surface-color);
+            color: var(--text-primary);
+            padding: 15px 25px; /* More padding */
+            border-radius: 20px; /* Even more rounded */
+            font-weight: 600;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
+        }
+
+        .back-button:hover {
+            transform: translateY(-4px); /* More lift */
+            background-color: var(--accent-main); /* Changes to accent color on hover */
+            color: white;
+            border-color: var(--accent-main);
+            box-shadow: var(--shadow-hover);
+        }
+
+        main { padding: 40px; padding-top: 20px; max-width: 1200px; margin: 0 auto; } /* More padding */
+
+        /* --- Cover Photo Section (Editable) --- */
+        #cover-container {
+            width: 100%; height: 40vh; max-height: 400px; /* Taller and more prominent */
+            border-radius: var(--border-radius);
+            overflow: hidden; position: relative;
+            margin-bottom: 50px; /* More space below */
+            background-color: var(--border-color); /* Soft placeholder */
+            box-shadow: var(--shadow);
+            transition: box-shadow 0.3s ease;
+            cursor: pointer; /* Indicates it's clickable */
+        }
+        #cover-container:hover {
+            box-shadow: var(--shadow-hover);
+        }
+
+        #cover-image { 
+            width: 100%; height: 100%; object-fit: cover; 
+            transition: transform 0.4s ease-in-out; /* Smoother zoom */
+            display: block;
+        }
+        #cover-container:hover #cover-image { transform: scale(1.05); }
+
+        .cover-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to top, rgba(90, 75, 66, 0.6), transparent 60%); /* Matches text-primary for soft dark overlay */
+            display: flex; flex-direction: column;
+            justify-content: flex-end; align-items: flex-start;
+            padding: 40px; /* Even more padding */
+            color: white;
+        }
+        
+        #main-title { 
+            font-family: var(--font-serif); font-size: 4rem; /* Even larger title */
+            text-shadow: 0 4px 8px rgba(0,0,0,0.5); /* Stronger shadow */
+            padding: 10px 20px; border-radius: 15px; /* Larger padding and more rounded */
+            transition: background-color 0.2s;
+            line-height: 1.1;
+        }
+        #main-title:focus { 
+            outline: none; 
+            background-color: rgba(255,255,255,0.3); /* More visible on focus */
+            box-shadow: 0 0 0 4px var(--accent-light); /* Light accent shadow on focus */
+        }
+        /* Style for the 'click to upload' prompt */
+        .cover-upload-prompt {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--text-secondary); /* Keep it muted and sweet */
+            font-size: 1.2rem;
+            text-align: center;
+            opacity: 0; 
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            display: flex; /* Use flex for icon and text alignment */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        #cover-container:not(.has-image):hover .cover-upload-prompt {
+            opacity: 1;
+        }
+        #cover-container.has-image .cover-upload-prompt {
+            opacity: 0;
+        }
+        .cover-upload-input {
+            display: none;
+        }
+
+        .widget-container {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            padding: 35px; /* Increased padding */
+            border-radius: var(--border-radius);
+            margin-bottom: 50px; /* More space below */
+            animation: slideInUp 0.5s ease-out 0.2s backwards;
+            box-shadow: var(--shadow);
+        }
+        .summary-widget {
+            display: flex; justify-content: space-around;
+            align-items: center; flex-wrap: wrap; gap: 30px; /* Increased gap */
+        }
+        .summary-stat { text-align: center; flex: 1; min-width: 140px; max-width: 200px; } /* More flexible sizing */
+        .summary-stat .label { 
+            font-size: 1rem; /* Slightly larger */
+            color: var(--text-secondary); margin-bottom: 10px; /* More margin */
+            font-weight: 500;
+        }
+        .summary-stat .value { 
+            font-size: 2.5rem; /* Larger values */
+            font-weight: 700; 
+            padding: 10px 15px; /* More padding */
+            border-radius: 12px; /* More rounded */
+            display: inline-block;
+            background-color: var(--bg-color); /* Light background for values */
+            transition: background-color 0.3s, box-shadow 0.3s;
+            color: var(--accent-dark); /* Default value color */
+        }
+        .summary-stat .value.negative { color: var(--accent-red); background-color: rgba(255, 127, 127, 0.2); } /* Softer red accent for negative */
+        .summary-stat .value[contenteditable="true"] { cursor: pointer; }
+        .summary-stat .value[contenteditable="true"]:hover { background-color: #f7e8e1; } /* Lighter peach hover */
+        .summary-stat .value[contenteditable="true"]:focus { 
+            outline: none; 
+            background-color: var(--surface-color); /* White background on focus */
+            box-shadow: 0 0 0 4px var(--accent-blue); /* Blue shadow for focus */
+        }
+
+        #progress-widget { margin-top: 35px; } /* More margin */
+        .progress-bar-container {
+            width: 100%; height: 18px; /* Thicker bar */
+            background-color: #f0f0f0;
+            border-radius: 9px; overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.08); /* Subtle inner shadow */
+        }
+        .progress-bar-fill {
+            height: 100%; width: 0%;
+            background-color: var(--accent-green);
+            border-radius: 9px;
+            transition: width 0.8s ease-out, background-color 0.4s ease; /* Smoother, slower transition */
+        }
+        .progress-bar-fill.medium { background-color: var(--accent-yellow); }
+        .progress-bar-fill.high { background-color: var(--accent-red); } /* Red for over budget */
+
+        .table-container {
+            background-color: var(--surface-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            animation: slideInUp 0.5s ease-out 0.3s backwards;
+        }
+        #shopping-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        #shopping-table th, #shopping-table td {
+            padding: 20px 30px; /* More padding */
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+        #shopping-table tbody tr:last-child td { border-bottom: none; }
+        #shopping-table th {
+            font-size: 0.95rem; color: var(--text-secondary);
+            text-transform: uppercase; letter-spacing: 1px; /* More spacing */
+            font-weight: 700;
+            background-color: #fffaf7; /* Very light, soft background for headers */
+        }
+        #shopping-table th:first-child { border-top-left-radius: var(--border-radius); }
+        #shopping-table th:last-child { border-top-right-radius: var(--border-radius); }
+        
+        #shopping-table tr.fade-out { animation: fadeOut 0.4s forwards; }
+
+        #shopping-table input[type="text"], #shopping-table input[type="number"] {
+            border: none; background-color: transparent;
+            font-family: var(--font-sans); font-size: 1.1rem; /* Slightly larger font */
+            width: 100%; padding: 10px; border-radius: 10px; /* More padding and rounded */
+            transition: background-color 0.2s, box-shadow 0.2s;
+            color: var(--text-primary);
+        }
+        #shopping-table input:focus {
+            outline: none; background-color: var(--bg-color); /* Light background on focus */
+            box-shadow: 0 0 0 2px var(--accent-blue); /* Blue shadow for focus */
+        }
+        .col-unit-price { display: flex; align-items: center; }
+        .col-unit-price .currency { color: var(--text-secondary); margin-right: 8px; font-size: 1.1rem; } /* Larger currency symbol */
+        .row-total { font-weight: 600; color: var(--accent-dark); } /* Highlight totals with darker accent */
+        
+        #shopping-table tr.purchased {
+            background-color: #f7f1eb; /* Softer background for purchased items */
+            opacity: 0.8;
+            transition: background-color 0.3s, opacity 0.3s;
+        }
+        #shopping-table tr.purchased .col-item input { text-decoration: line-through; color: var(--text-secondary); }
+
+        .purchase-checkbox { display: inline-block; cursor: pointer; }
+        .custom-checkbox {
+            width: 26px; height: 26px; border: 2px solid #ccc; /* Slightly thicker, softer border */
+            border-radius: 50%; display: inline-block; position: relative;
+            transition: all 0.2s ease;
+            background-color: var(--surface-color);
+        }
+        .purchase-checkbox input[type="checkbox"]:checked + .custom-checkbox {
+            background-color: var(--accent-green); border-color: var(--accent-green);
+        }
+        .purchase-checkbox input[type="checkbox"]:checked + .custom-checkbox::after {
+            content: '✔'; color: white; position: absolute;
+            left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 16px; /* Larger checkmark */
+            font-weight: 900;
+        }
+        .purchase-checkbox:hover .custom-checkbox {
+            border-color: var(--accent-green);
+            box-shadow: 0 0 0 3px rgba(144, 212, 192, 0.4); /* Soft green glow on hover */
+        }
+
+        .delete-btn { background: none; border: none; color: var(--text-secondary); font-size: 1.3rem; cursor: pointer; transition: color 0.2s, background-color 0.2s; padding: 10px; border-radius: 50%; } /* Larger padding, rounded */
+        .delete-btn:hover { color: var(--accent-red); background-color: rgba(255, 127, 127, 0.2); } /* Softer red hover background */
+        
+        .list-actions { 
+            text-align: center; 
+            margin-top: 50px; 
+            display: flex; 
+            justify-content: center;
+            gap: 25px;
+        } 
+        
+        .action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 18px 35px;
+            border: 1px solid var(--border-color);
+            background-color: var(--surface-color);
+            text-align: center; 
+            font-size: 1.1rem; 
+            font-weight: 600; 
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s ease; 
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            width: auto;
+            min-width: unset;
+        }
+        .action-btn i { font-size: 1.2em; }
+
+        #add-item-btn { 
+            background-color: var(--accent-main);
+            color: white; 
+            border-color: var(--accent-main); 
+        }
+        #add-item-btn:hover { 
+            background-color: var(--accent-dark); 
+            border-color: var(--accent-dark); 
+            transform: translateY(-4px); 
+            box-shadow: var(--shadow-hover); 
+        }
+        
+        #empty-state { text-align: center; padding: 70px; display: none; flex-direction: column; align-items: center; justify-content: center; }
+        #empty-state p { font-size: 1.4rem; color: var(--text-secondary); margin-top: 20px; }
+        
+        @media (max-width: 768px) { /* ... Your existing responsive styles ... */ }
+        @media (max-width: 480px) { /* ... Your existing responsive styles ... */ }
+    </style>
+</head>
+<body>
+    <header class="page-top-header">
+        <a href="index.html" class="back-button">
+            <i class="fa-solid fa-arrow-left"></i>
+            Back to Main Dashboard
+        </a>
+    </header>
+
+    <main>
+        <div id="cover-container">
+            <input type="file" class="cover-upload-input" id="coverPhotoInput" accept="image/*">
+            <img id="cover-image" src="" alt="Shopping Planner Cover">
+            <div class="cover-overlay">
+                <h1 id="main-title" contenteditable="true">My Weekly Groceries</h1>
+            </div>
+            <div class="cover-upload-prompt">
+                <i class="fas fa-camera-retro"></i> <p>Click to add your cute cover photo!</p>
+            </div>
+        </div>
+        
+        <div class="widget-container">
+            <div class="summary-widget">
+                 <div class="summary-stat">
+                    <div class="label">To Buy</div>
+                    <div id="summary-items-tobuy" class="value">0</div>
+                </div>
+                 <div class="summary-stat">
+                    <div class="label">Purchased</div>
+                    <div id="summary-items-purchased" class="value">0</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="label">Weekly Budget</div>
+                    <div id="summary-budget" class="value" contenteditable="true">₹0.00</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="label">Total Cost</div>
+                    <div id="summary-total-cost" class="value">₹0.00</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="label">Remaining</div>
+                    <div id="summary-remaining" class="value">₹0.00</div>
+                </div>
+            </div>
+            <div id="progress-widget">
+                <div class="progress-bar-container">
+                    <div id="progress-bar-fill" class="progress-bar-fill"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="shopping-table">
+                <thead>
+                    <tr>
+                        <th class="col-check"><i class="fas fa-check"></i></th>
+                        <th class="col-item">Item</th>
+                        <th class="col-unit-price">Unit Price</th>
+                        <th class="col-qty">Qty</th>
+                        <th class="col-subtotal">Subtotal</th>
+                        <th class="col-actions"></th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <!-- Rows will be dynamically inserted here by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div id="empty-state">
+            <lottie-player src="https://lottie.host/24810792-76a3-4c4f-a422-95b6134a6132/Cpr1j2j32E.json" background="transparent" speed="1" style="width: 250px; height: 250px; margin: auto;" loop autoplay></lottie-player>
+            <p>Your shopping list is empty. Time to add some yummy treats!</p>
+        </div>
+
+        <div class="list-actions">
+            <button id="add-item-btn" class="action-btn"><i class="fas fa-plus"></i> Add Item</button>
+        </div>
+    </main>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- 1. GLOBAL STATE & FIREBASE REFS ---
+        let pageId = null;
+        let shoppingData = {}; // This holds all data for the current page
+
+        const auth = window.firebaseAuth;
+        const db = window.firebaseDb;
+        
+        const defaultData = {
+            title: "My Weekly Groceries",
+            coverPhoto: '',
+            budget: 1500.00,
+            items: [
+                { id: Date.now(), name: 'Avocado', price: 150.00, quantity: 2, purchased: false },
+                { id: Date.now() + 1, name: 'Fresh Bread', price: 50.00, quantity: 1, purchased: true }
+            ]
+        };
+
+        // --- 2. DOM ELEMENT SELECTION ---
+        const tableBody = document.getElementById('table-body');
+        const tableContainer = document.querySelector('.table-container');
+        const emptyState = document.getElementById('empty-state');
+        const addItemBtn = document.getElementById('add-item-btn');
+        const mainTitle = document.getElementById('main-title');
+        const summaryItemsToBuy = document.getElementById('summary-items-tobuy');
+        const summaryItemsPurchased = document.getElementById('summary-items-purchased');
+        const summaryBudget = document.getElementById('summary-budget');
+        const summaryTotalCost = document.getElementById('summary-total-cost');
+        const summaryRemaining = document.getElementById('summary-remaining');
+        const progressBarFill = document.getElementById('progress-bar-fill');
+        const coverContainer = document.getElementById('cover-container');
+        const coverPhotoInput = document.getElementById('coverPhotoInput');
+        const coverPhotoImg = document.getElementById('cover-image');
+
+        // --- 3. UTILITY & FIREBASE FUNCTIONS ---
+        const debounce = (func, delay) => {
+            let timeout;
+            return (...args) => {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), delay);
+            };
+        };
+
+        const formatCurrency = (amount) => `₹${Number(amount || 0).toFixed(2)}`;
+
+        const saveData = () => {
+            if (pageId && window.saveTemplateData) {
+                window.saveTemplateData(pageId, shoppingData);
+            }
+        };
+
+        const debouncedSave = debounce(saveData, 1200);
+
+        const loadData = async () => {
+            if (!auth.currentUser || !pageId) return;
+            const docRef = db.collection('users').doc(auth.currentUser.uid).collection('templatePages').doc(pageId);
+            try {
+                const doc = await docRef.get();
+                if (doc.exists) {
+                    const firestorePage = doc.data();
+                    shoppingData = { ...defaultData, ...firestorePage.data };
+                    if (!Array.isArray(shoppingData.items)) {
+                        shoppingData.items = [];
+                    }
+                    if (firestorePage.name) { // Sync title from the master record
+                        shoppingData.title = firestorePage.name;
+                    }
+                } else {
+                    shoppingData = JSON.parse(JSON.stringify(defaultData));
+                }
+                render();
+            } catch (error) {
+                console.error("Error loading data:", error);
+                document.body.innerHTML = "<h1>Error loading data. Please try again.</h1>";
+            }
+        };
+
+        // --- 4. CORE APPLICATION LOGIC & RENDERING ---
+        const render = () => {
+            mainTitle.textContent = shoppingData.title;
+            
+            if (shoppingData.coverPhoto) {
+                coverPhotoImg.src = shoppingData.coverPhoto;
+                coverPhotoImg.style.display = 'block';
+                coverContainer.classList.add('has-image');
+            } else {
+                coverPhotoImg.src = '';
+                coverPhotoImg.style.display = 'none';
+                coverContainer.classList.remove('has-image');
+            }
+
+            const hasItems = shoppingData.items.length > 0;
+            tableContainer.style.display = hasItems ? 'block' : 'none';
+            emptyState.style.display = hasItems ? 'none' : 'flex';
+
+            if (hasItems) {
+                tableBody.innerHTML = '';
+                shoppingData.items.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.dataset.id = item.id;
+                    if (item.purchased) row.classList.add('purchased');
+                    row.innerHTML = `
+                        <td class="col-check"><label class="purchase-checkbox"><input type="checkbox" class="purchase-check" style="display:none;" ${item.purchased ? 'checked' : ''}><span class="custom-checkbox"></span></label></td>
+                        <td class="col-item"><input type="text" data-key="name" value="${item.name || ''}" placeholder="Item Name"></td>
+                        <td class="col-unit-price"><span class="currency">₹</span><input type="number" data-key="price" value="${(item.price || 0).toFixed(2)}" step="0.01" min="0"></td>
+                        <td class="col-qty"><input type="number" data-key="quantity" value="${item.quantity || 1}" step="1" min="1"></td>
+                        <td class="col-subtotal"><span class="row-total">${formatCurrency((item.price || 0) * (item.quantity || 0))}</span></td>
+                        <td class="col-actions"><button class="delete-btn"><i class="fas fa-trash-alt"></i></button></td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
+            updateSummary();
+        };
+
+        const updateSummary = () => {
+            const totalCost = shoppingData.items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 0)), 0);
+            const remaining = (shoppingData.budget || 0) - totalCost;
+            const itemsPurchased = shoppingData.items.filter(i => i.purchased).length;
+            const itemsToBuy = shoppingData.items.length - itemsPurchased;
+            const budget = shoppingData.budget || 0;
+            const budgetProgress = (budget > 0) ? (totalCost / budget) * 100 : 0;
+
+            summaryItemsToBuy.textContent = itemsToBuy;
+            summaryItemsPurchased.textContent = itemsPurchased;
+            summaryBudget.textContent = formatCurrency(budget);
+            summaryTotalCost.textContent = formatCurrency(totalCost);
+            summaryRemaining.textContent = formatCurrency(remaining);
+            summaryRemaining.classList.toggle('negative', remaining < 0);
+            
+            progressBarFill.style.width = `${Math.min(budgetProgress, 100)}%`;
+            progressBarFill.className = 'progress-bar-fill';
+            if (budgetProgress > 100) progressBarFill.classList.add('high');
+            else if (budgetProgress > 75) progressBarFill.classList.add('medium');
+        };
+
+        // --- 5. EVENT HANDLERS ---
+        addItemBtn.addEventListener('click', () => {
+            const newItem = { id: Date.now(), name: '', price: 0.00, quantity: 1, purchased: false };
+            shoppingData.items.unshift(newItem);
+            saveData(); // Save immediately
+            render();
+            const newRow = tableBody.querySelector(`[data-id="${newItem.id}"]`);
+            if (newRow) newRow.querySelector('[data-key="name"]').focus();
+        });
+
+        tableBody.addEventListener('click', e => {
+            const row = e.target.closest('tr');
+            if (!row) return;
+            const itemId = Number(row.dataset.id);
+
+            if (e.target.closest('.delete-btn')) {
+                row.classList.add('fade-out');
+                setTimeout(() => {
+                    shoppingData.items = shoppingData.items.filter(i => i.id !== itemId);
+                    saveData();
+                    render();
+                }, 400);
+            }
+        });
+
+        tableBody.addEventListener('change', e => {
+            if (e.target.matches('.purchase-check')) {
+                const row = e.target.closest('tr');
+                const itemId = Number(row.dataset.id);
+                const item = shoppingData.items.find(i => i.id === itemId);
+                if (item) {
+                    item.purchased = e.target.checked;
+                    saveData();
+                    render();
+                }
+            }
+        });
+
+        tableBody.addEventListener('input', e => {
+            const inputEl = e.target;
+            const row = inputEl.closest('tr');
+            if (!row || !inputEl.matches('input[data-key]')) return;
+            
+            const itemId = Number(row.dataset.id);
+            const item = shoppingData.items.find(i => i.id === itemId);
+            if (!item) return;
+
+            const key = inputEl.dataset.key;
+            const value = (inputEl.type === 'number') ? parseFloat(inputEl.value) : inputEl.value;
+            item[key] = value;
+            
+            row.querySelector('.row-total').textContent = formatCurrency((item.price || 0) * (item.quantity || 0));
+            updateSummary();
+            debouncedSave();
+        });
+
+        mainTitle.addEventListener('blur', () => {
+            const newTitle = mainTitle.textContent.trim() || 'My Weekly Groceries';
+            if (shoppingData.title !== newTitle) {
+                shoppingData.title = newTitle;
+                saveData();
+            }
+        });
+
+        summaryBudget.addEventListener('blur', () => {
+            const newBudgetValue = parseFloat(summaryBudget.textContent.replace(/[^0-9.]/g, '')) || 0;
+            if (shoppingData.budget !== newBudgetValue) {
+                shoppingData.budget = newBudgetValue;
+                saveData();
+                updateSummary();
+            }
+        });
+
+        [mainTitle, summaryBudget].forEach(el => {
+            el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); }});
+        });
+
+        coverContainer.addEventListener('click', () => coverPhotoInput.click());
+        coverPhotoInput.addEventListener('change', () => {
+            const file = coverPhotoInput.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    shoppingData.coverPhoto = e.target.result;
+                    saveData();
+                    render();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // --- 6. AUTHENTICATION GATE & INITIALIZATION ---
+        if (!auth || !db) {
+            console.error("Firebase is not initialized. Make sure app.js is loaded correctly.");
+            return;
+        }
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                const params = new URLSearchParams(window.location.search);
+                pageId = params.get('id');
+                if (pageId) {
+                    loadData();
+                } else {
+                    document.body.innerHTML = '<h1>Error: Page ID missing. Please return to your dashboard.</h1>';
+                }
+            } else {
+                window.location.href = 'index.html';
+            }
+        });
+    });
+    </script>
+</body>
+</html>

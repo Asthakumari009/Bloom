@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Productivity Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+    <!-- Firebase SDKs (Required for Firebase to work) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+    <!-- Our Shared Firebase Initializer from the main app -->
+    <script src="app.js"></script>
+
+    <style>
+        :root {
+            /* Updated Color Palette for a more vibrant, aesthetic feel */
+            --bg-color: #e6eefc; /* A soft, calming sky blue */
+            --surface-color: #ffffff; /* Pure white for cards */
+            --border-color: #d1e0f0; /* Lighter blue-grey border */
+            --text-primary: #34495e; /* Deep charcoal blue for main text */
+            --text-secondary: #7f8c8d; /* Muted grey for secondary text */
+
+            --accent-main: #6a0572; /* Rich, deep purple for primary actions/highlights */
+            --accent-secondary: #f39c12; /* Energetic orange for alerts/today's date */
+            --accent-green: #27ae60; /* Bold emerald green for success/checkboxes */
+            --accent-purple-bg: rgba(106, 5, 114, 0.1); /* Light purple background */
+            --accent-orange-bg: rgba(243, 156, 18, 0.1); /* Light orange background */
+
+            --border-radius: 20px; /* Even more rounded corners for a soft look */
+            --shadow: 0 8px 16px rgba(0,0,0,0.08), 0 20px 40px rgba(0,0,0,0.1); /* Deeper shadows */
+            --shadow-hover: 0 12px 24px rgba(0,0,0,0.1), 0 25px 50px rgba(0,0,0,0.15); /* More pronounced hover shadow */
+            --font-family: 'Inter', sans-serif;
+        }
+
+        @keyframes fadeInSlideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-family);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* --- NEW: Header with Back Button --- */
+        .page-top-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 25px 40px 0;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            background-color: var(--surface-color);
+            color: var(--text-primary);
+            padding: 12px 22px;
+            border-radius: 15px;
+            font-weight: 600;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .back-button:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-hover);
+            background-color: var(--accent-main);
+            color: white;
+            border-color: var(--accent-main);
+        }
+        .back-button::before {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 0; height: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.4s ease-out, height 0.4s ease-out, opacity 0.4s ease-out;
+            opacity: 0;
+            z-index: 0;
+        }
+        .back-button:hover::before {
+            width: 150%;
+            height: 150%;
+            opacity: 1;
+        }
+        .back-button i, .back-button span {
+            position: relative;
+            z-index: 1;
+        }
+        
+        main { padding: 40px; padding-top: 20px; max-width: 1400px; margin: 0 auto; }
+        .dashboard-header {
+            text-align: center; margin-bottom: 60px;
+            animation: fadeInSlideUp 0.5s ease-out forwards;
+        }
+        .dashboard-header h1 { font-size: 3.5rem; font-weight: 800; letter-spacing: -2px; color: var(--text-primary); text-shadow: 2px 2px 4px rgba(0,0,0,0.05); }
+        
+        /* --- Generic Card Styles --- */
+        .card {
+            background-color: var(--surface-color); padding: 40px;
+            border-radius: var(--border-radius); box-shadow: var(--shadow); 
+            margin-bottom: 40px; border: 1px solid var(--border-color);
+            position: relative; opacity: 0; animation: fadeInSlideUp 0.6s ease-out forwards;
+            transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .card:hover { transform: translateY(-10px); box-shadow: var(--shadow-hover); }
+        .card.sortable-ghost { background-color: var(--accent-purple-bg); border: 2px dashed var(--accent-main); }
+        .card-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 30px; border-bottom: 2px solid var(--border-color);
+            padding-bottom: 18px;
+        }
+        .card-header h2 { font-size: 1.8rem; font-weight: 700; cursor: grab; color: var(--text-primary); }
+        .card-header h2:active { cursor: grabbing; }
+        
+        [contenteditable="true"] {
+            outline: none;
+            border-radius: 8px;
+            padding: 5px 10px;
+            transition: box-shadow 0.3s ease, background-color 0.3s ease;
+        }
+        [contenteditable="true"]:focus { box-shadow: 0 0 0 4px var(--accent-main); background-color: rgba(106, 5, 114, 0.15); }
+
+        /* --- Specific Card Layouts --- */
+        .flex-container { display: flex; gap: 40px; }
+        .flex-container > .column { flex: 1; min-width: 0; }
+        .column h3 {
+            font-size: 1.4rem; margin-bottom: 20px; padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color); color: var(--text-primary);
+        }
+        .checklist { list-style: none; padding-left: 0; }
+        .checklist li { display: flex; align-items: center; gap: 15px; padding: 12px 0; border-bottom: 1px solid var(--border-color); }
+        .checklist li:last-child { border-bottom: none; }
+        .checklist li span { flex-grow: 1; transition: color 0.3s, text-decoration 0.3s; }
+        .checklist li.completed span { text-decoration: line-through; color: var(--text-secondary); }
+        
+        .delete-item-btn {
+            opacity: 0; visibility: hidden; background: none; border: none;
+            color: #c0c0c0;
+            cursor: pointer; font-size: 1.2rem;
+            transition: opacity 0.3s, color 0.3s, visibility 0.3s;
+        }
+        li:hover .delete-item-btn, .habit-table tr:hover .delete-item-btn { opacity: 1; visibility: visible; }
+        .delete-item-btn:hover { color: var(--accent-secondary); }
+        .add-item-btn {
+            background: var(--accent-main);
+            border: 1px solid var(--accent-main);
+            color: white;
+            cursor: pointer; font-weight: 600;
+            margin-top: 25px; padding: 15px 20px; border-radius: 12px;
+            width: 100%; transition: all 0.3s ease;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .add-item-btn:hover { background-color: #8e44ad; border-color: #8e44ad; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        
+        .image-container { width: 100%; height: 280px; border-radius: 15px; overflow: hidden; margin-top: 30px; cursor: pointer; position: relative; }
+        .image-container img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+        .image-container:hover img { transform: scale(1.15); }
+        .image-container .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); opacity: 0; transition: opacity 0.3s; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; font-weight: 600;}
+        .image-container:hover .overlay { opacity: 1; }
+        .file-input { display: none; }
+        
+        .callout { padding: 35px; border-radius: 16px; }
+        .callout-purple { background: var(--accent-purple-bg); border-left: 6px solid var(--accent-main); }
+        .callout-pink { background: var(--accent-orange-bg); border-left: 6px solid var(--accent-secondary); }
+        
+        .habit-table, .checklist { --checkbox-size: 26px; }
+        .habit-table input[type="checkbox"], .checklist input[type="checkbox"] {
+            appearance: none; -webkit-appearance: none;
+            width: var(--checkbox-size); height: var(--checkbox-size);
+            min-width: var(--checkbox-size);
+            background-color: #ecf0f1;
+            border: 2px solid #bdc3c7;
+            border-radius: 10px;
+            cursor: pointer; position: relative; transition: all 0.3s ease;
+        }
+        .habit-table input[type="checkbox"]:hover, .checklist input[type="checkbox"]:hover { border-color: var(--accent-green); }
+        .habit-table input[type="checkbox"]:checked, .checklist input[type="checkbox"]:checked { background-color: var(--accent-green); border-color: var(--accent-green); }
+        .habit-table input[type="checkbox"]:checked::after, .checklist input[type="checkbox"]:checked::after {
+            content: '✔'; color: white; font-weight: 900;
+            font-size: 18px; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .habit-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        .habit-table th, .habit-table td { padding: 18px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        .habit-table th { color: var(--text-secondary); font-weight: 700; background-color: #f8f8f8; }
+        .habit-table th:first-child { border-top-left-radius: 15px; }
+        .habit-table th:last-child { border-top-right-radius: 15px; }
+        .habit-table tr:last-child td { border-bottom: none; }
+        .habit-table td:not(:first-child), .habit-table th:not(:first-child) { text-align: center; }
+
+        .calendar-nav { display: flex; align-items: center; gap: 20px; }
+        .calendar-nav span { font-size: 1.4rem; font-weight: 700; color: var(--text-primary); }
+        .calendar-nav button { background: var(--bg-color); border: 1px solid var(--border-color); font-size: 1.2rem; cursor: pointer; color: var(--text-secondary); padding: 10px 15px; border-radius: 10px; transition: background-color 0.2s, color 0.2s, border-color 0.2s; }
+        .calendar-nav button:hover { background-color: var(--accent-main); color: white; border-color: var(--accent-main); }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; }
+        .day-name { text-align: center; font-weight: 800; color: var(--text-secondary); padding-bottom: 15px; }
+        .calendar-day {
+            background-color: #fcfcfc;
+            border-radius: 15px;
+            padding: 20px; min-height: 160px;
+            display: flex; flex-direction: column;
+            border: 1px solid var(--border-color);
+            cursor: pointer; transition: all 0.3s ease;
+            position: relative;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+            overflow: visible;
+        }
+        .calendar-day:hover { transform: translateY(-5px); box-shadow: var(--shadow); background-color: #eef5fa; }
+        .other-month { opacity: 0.6; background: #f0f4f8; border: none; cursor: default; pointer-events: none; }
+        .other-month:hover { transform: none; box-shadow: none; }
+        .day-number { font-weight: 700; text-align: right; color: var(--text-primary); font-size: 1.1rem; }
+        .current-day {
+            background-color: var(--accent-main);
+            color: white;
+            border-color: var(--accent-main);
+            transform: scale(1.02);
+            box-shadow: var(--shadow-hover);
+        }
+        .current-day .day-number {
+            background-color: var(--accent-secondary);
+            color: white;
+            border-radius: 50%; width: 36px; height: 36px;
+            display: flex; align-items: center; justify-content: center; float: right;
+            font-size: 1.3rem;
+        }
+        .current-day .task-indicator { background-color: white; }
+        .task-indicator {
+            position: absolute; top: 15px; left: 15px;
+            background-color: var(--accent-green);
+            width: 12px; height: 12px; border-radius: 50%;
+        }
+
+        .calendar-day .tooltip {
+            visibility: hidden; opacity: 0; width: 180px;
+            background-color: var(--text-primary); color: #fff;
+            text-align: left; border-radius: 8px; padding: 12px;
+            position: absolute; z-index: 1000; bottom: 100%; left: 50%;
+            transform: translateX(-50%) translateY(-10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            box-shadow: var(--shadow); font-size: 0.9em; pointer-events: none;
+        }
+        .calendar-day .tooltip ul { list-style: none; padding: 0; margin: 0; }
+        .calendar-day .tooltip li { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .calendar-day .tooltip li:last-child { border-bottom: none; }
+        .calendar-day .tooltip::after {
+            content: ""; position: absolute; top: 100%; left: 50%;
+            margin-left: -5px; border-width: 5px; border-style: solid;
+            border-color: var(--text-primary) transparent transparent transparent;
+        }
+        .calendar-day:hover .tooltip { visibility: visible; opacity: 1; transform: translateX(-50%) translateY(-20px); }
+        .calendar-day.no-tasks .tooltip { display: none; }
+        
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(12px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 2000; opacity: 0; visibility: hidden;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
+        }
+        .modal-overlay.visible { opacity: 1; visibility: visible; }
+        .modal-content {
+            background-color: var(--surface-color); padding: 40px;
+            border-radius: var(--border-radius); width: 90%; max-width: 600px;
+            box-shadow: var(--shadow-hover);
+            transform: scale(0.85);
+            transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .modal-overlay.visible .modal-content { transform: scale(1); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .modal-header h3 { font-size: 1.8rem; color: var(--text-primary); }
+        .close-modal-btn { background: none; border: none; color: var(--text-secondary); font-size: 2rem; cursor: pointer; transition: color 0.2s; }
+        .close-modal-btn:hover { color: var(--accent-secondary); }
+        #modal-add-task-form input {
+            width: 100%; background: #f0f4f8; border: 1px solid #d1e0f0;
+            color: var(--text-primary); padding: 16px; border-radius: 12px; margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        #modal-add-task-form .add-item-btn { margin-top: 0; }
+        #modal-task-list { color: var(--text-primary); }
+        
+        @media (max-width: 900px) { .flex-container { flex-direction: column; } }
+    </style>
+</head>
+<body>
+
+    <header class="page-top-header">
+        <a href="index.html" class="back-button">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>Back to Main Dashboard</span>
+        </a>
+    </header>
+
+    <main id="dashboard-content">
+        <!-- Dashboard will be rendered here by JavaScript -->
+    </main>
+
+    <div class="modal-overlay" id="date-tasks-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-date-title"></h3>
+                <button class="close-modal-btn" id="close-modal-btn">×</button>
+            </div>
+            <ul class="checklist" id="modal-task-list"></ul>
+            <form id="modal-add-task-form">
+                <input type="text" placeholder="Add a new task..." required>
+                <button type="submit" class="add-item-btn"><i class="fa-solid fa-plus"></i> Add Task</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- 1. GLOBAL STATE & FIREBASE REFS ---
+        let pageId = null;
+        let dashboardData = {};
+        let currentMonth = new Date();
+        let selectedDateString = null;
+        
+        const auth = window.firebaseAuth;
+        const db = window.firebaseDb;
+
+        // --- 2. DEFAULT DATA STRUCTURE ---
+        const defaultData = {
+            mainTitle: "My Productivity Dashboard",
+            cardOrder: ["card-3", "card-1", "card-2", "card-5"],
+            cards: {
+                "card-3": { type: 'habits', title: '⚡ Daily Habits' },
+                "card-1": { type: 'routines', title: '✨ Daily Routines', columns: [
+                    { subtitle: '☀️ Morning Routine', items: [{id: 'mr1', text:'Drink water', completed: true}, {id: 'mr2', text:'10 min stretching', completed: false}], imageSrc: 'https://images.pexels.com/photos/1770809/pexels-photo-1770809.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1' },
+                    { subtitle: '🌙 Night Routine', items: [{id: 'nr1', text:'Read one chapter', completed: false}, {id: 'nr2', text:'Plan next day', completed: false}], imageSrc: 'https://images.pexels.com/photos/3184418/pexels-photo-3184418.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1' }]
+                },
+                "card-2": { type: 'callouts', title: '🎯 Monthly Focus', columns: [
+                    { subtitle: '📌 Goals', items: [{id: 'g1', text:'Save ₹1000', completed: false}, {id: 'g2', text:'Read one book', completed: false}], color: 'purple' },
+                    { subtitle: '🚀 New Experiences', items: [{id: 'e1', text:'Try a new recipe', completed: true}, {id: 'e2', text:'Visit a new park', completed: false}], color: 'pink' }]
+                },
+                "card-5": { type: 'calendar', title: '📅 Calendar' }
+            },
+            habits: [
+                { id: 'h1', name: 'Workout', checked: [true, false, true, false, true, false, false] },
+                { id: 'h2', name: 'Read 10 pages', checked: [true, true, true, true, true, false, false] }
+            ],
+            tasksByDate: {}
+        };
+        
+        // --- 3. DOM ELEMENTS ---
+        const dashboardContent = document.getElementById('dashboard-content');
+        const modal = document.getElementById('date-tasks-modal');
+        const modalTitle = document.getElementById('modal-date-title');
+        const modalList = document.getElementById('modal-task-list');
+        const modalForm = document.getElementById('modal-add-task-form');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+
+        // --- 4. UTILITY & FIREBASE FUNCTIONS ---
+        const debounce = (func, delay) => {
+            let timeout;
+            return (...args) => {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), delay);
+            };
+        };
+
+        const saveData = () => {
+            if (pageId && window.saveTemplateData) {
+                window.saveTemplateData(pageId, dashboardData);
+            }
+        };
+
+        const debouncedSave = debounce(saveData, 1500);
+
+        const loadData = async () => {
+            if (!auth.currentUser || !pageId) return;
+            const docRef = db.collection('users').doc(auth.currentUser.uid).collection('templatePages').doc(pageId);
+            try {
+                const doc = await docRef.get();
+                if (doc.exists) {
+                    const firestorePage = doc.data();
+                    const mergedData = { ...defaultData, ...firestorePage.data };
+                    // Deep merge nested objects to ensure new default properties are added
+                    mergedData.cards = { ...defaultData.cards, ...firestorePage.data?.cards };
+                    dashboardData = mergedData;
+                    
+                    if (firestorePage.name) {
+                        dashboardData.mainTitle = firestorePage.name;
+                    }
+                } else {
+                    dashboardData = JSON.parse(JSON.stringify(defaultData));
+                }
+                renderDashboard();
+            } catch (error) {
+                console.error("Error loading dashboard data:", error);
+                dashboardContent.innerHTML = "<h1>Error loading dashboard. Please try again.</h1>";
+            }
+        };
+
+        // --- 5. RENDER FUNCTIONS ---
+        const renderDashboard = () => {
+            dashboardContent.innerHTML = '';
+            const header = document.createElement('div');
+            header.className = 'dashboard-header';
+            header.innerHTML = `<h1 contenteditable="true" data-action="updateMainTitle">${dashboardData.mainTitle}</h1>`;
+            dashboardContent.appendChild(header);
+
+            (dashboardData.cardOrder || []).forEach((cardId, index) => {
+                const cardData = dashboardData.cards[cardId];
+                if (!cardData) return;
+                let cardEl;
+                switch(cardData.type) {
+                    case 'routines': case 'callouts': cardEl = createChecklistCard(cardData, cardId); break;
+                    case 'habits': cardEl = createHabitTrackerCard(cardData, cardId); break;
+                    case 'calendar': cardEl = createCalendarCard(cardData, cardId); break;
+                }
+                if (cardEl) {
+                    cardEl.style.animationDelay = `${index * 100}ms`;
+                    dashboardContent.appendChild(cardEl);
+                }
+            });
+            initializeSortable();
+        };
+
+        const createChecklistCard = (cardData, cardId) => {
+            const cardEl = document.createElement('div');
+            cardEl.className = 'card';
+            cardEl.dataset.id = cardId;
+            cardEl.innerHTML = `
+                <div class="card-header"><h2 contenteditable="true" data-action="updateCardTitle" data-card-id="${cardId}">${cardData.title}</h2></div>
+                <div class="flex-container">
+                    ${(cardData.columns || []).map((col, i) => createChecklistColumn(cardId, i, col)).join('')}
+                </div>`;
+            return cardEl;
+        };
+
+        const createChecklistColumn = (cardId, colIndex, colData) => {
+            const listItems = (colData.items || []).map(item => `
+                <li class="${item.completed ? 'completed' : ''}">
+                    <input type="checkbox" data-action="toggleChecklistItem" data-card-id="${cardId}" data-col-index="${colIndex}" data-item-id="${item.id}" ${item.completed ? 'checked' : ''}>
+                    <span contenteditable="true" data-action="updateChecklistItemText" data-card-id="${cardId}" data-col-index="${colIndex}" data-item-id="${item.id}">${item.text}</span>
+                    <button class="delete-item-btn" data-action="deleteChecklistItem" data-card-id="${cardId}" data-col-index="${colIndex}" data-item-id="${item.id}"><i class="fa-solid fa-xmark"></i></button>
+                </li>`).join('');
+            const imageHTML = colData.imageSrc ? `<div class="image-container" data-action="triggerImageUpload" data-card-id="${cardId}" data-col-index="${colIndex}"><div class="overlay"><i class="fa-solid fa-camera"></i></div><img src="${colData.imageSrc}"><input type="file" class="file-input" accept="image/*" data-action="updateImage" data-card-id="${cardId}" data-col-index="${colIndex}"></div>` : '';
+            const calloutClass = colData.color ? `callout callout-${colData.color}` : '';
+            return `
+                <div class="column ${calloutClass}">
+                    <h3 contenteditable="true" data-action="updateColumnSubtitle" data-card-id="${cardId}" data-col-index="${colIndex}">${colData.subtitle}</h3>
+                    <ul class="checklist">${listItems}</ul>
+                    <button class="add-item-btn" data-action="addChecklistItem" data-card-id="${cardId}" data-col-index="${colIndex}"><i class="fa-solid fa-plus"></i> Add Item</button>
+                    ${imageHTML}
+                </div>`;
+        };
+
+        const createHabitTrackerCard = (cardData, cardId) => {
+            const cardEl = document.createElement('div');
+            cardEl.className = 'card';
+            cardEl.dataset.id = cardId;
+            const habitRows = (dashboardData.habits || []).map(habit => `
+                <tr>
+                    <td contenteditable="true" data-action="updateHabitName" data-habit-id="${habit.id}">${habit.name}</td>
+                    ${(habit.checked || []).map((c, dayIndex) => `<td><input type="checkbox" ${c ? 'checked' : ''} data-action="updateHabitCheck" data-habit-id="${habit.id}" data-day-index="${dayIndex}"></td>`).join('')}
+                    <td><button class="delete-item-btn" data-action="deleteHabit" data-habit-id="${habit.id}"><i class="fa-solid fa-xmark"></i></button></td>
+                </tr>`).join('');
+            cardEl.innerHTML = `
+                <div class="card-header"><h2 contenteditable="true" data-action="updateCardTitle" data-card-id="${cardId}">${cardData.title}</h2></div>
+                <table class="habit-table">
+                    <thead><tr><th>Habit</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th><th></th></tr></thead>
+                    <tbody>${habitRows}</tbody>
+                </table>
+                <button class="add-item-btn" data-action="addHabit"><i class="fa-solid fa-plus"></i> Add Habit</button>`;
+            return cardEl;
+        };
+
+        const createCalendarCard = (cardData, cardId) => {
+            const cardEl = document.createElement('div');
+            cardEl.className = 'card';
+            cardEl.dataset.id = cardId;
+
+            const header = `<div class="card-header">
+                <h2 contenteditable="true" data-action="updateCardTitle" data-card-id="${cardId}">${cardData.title}</h2>
+                <div class="calendar-nav">
+                    <button data-action="prevMonth">‹</button>
+                    <span id="month-year">${currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
+                    <button data-action="nextMonth">›</button>
+                </div>
+            </div>`;
+
+            const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+            const lastDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+            const startDay = (firstDay.getDay() + 6) % 7; // Monday is 0
+            
+            // CORRECTED: The map function now correctly receives the index parameter.
+            let daysHTML = [...Array(7)].map((_, index) => `<div class="day-name">${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][index]}</div>`).join('');
+            
+            for (let i = 0; i < startDay; i++) {
+                daysHTML += `<div class="calendar-day other-month"></div>`;
+            }
+
+            for (let i = 1; i <= lastDay.getDate(); i++) {
+                const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), i);
+                const dateStr = date.toISOString().split('T')[0];
+                const todayStr = new Date().toISOString().split('T')[0];
+                const isCurrentDay = dateStr === todayStr;
+                const tasks = dashboardData.tasksByDate[dateStr] || [];
+                const tooltipContent = tasks.length > 0 ? `<ul>${tasks.map(t => `<li class="${t.completed ? 'completed' : ''}">${t.text}</li>`).join('')}</ul>` : 'No tasks for this day.';
+                
+                daysHTML += `
+                    <div class="calendar-day ${isCurrentDay ? 'current-day' : ''} ${tasks.length === 0 ? 'no-tasks' : ''}" data-action="openDateModal" data-date="${dateStr}">
+                        <span class="day-number">${i}</span>
+                        ${tasks.length > 0 ? '<div class="task-indicator"></div>' : ''}
+                        <div class="tooltip">${tooltipContent}</div>
+                    </div>`;
+            }
+
+            cardEl.innerHTML = `${header}<div class="calendar-grid">${daysHTML}</div>`;
+            return cardEl;
+        };
+        
+        // --- 6. EVENT HANDLING ---
+        dashboardContent.addEventListener('click', e => {
+            const target = e.target.closest('[data-action]');
+            if (!target) return;
+            const action = target.dataset.action;
+            const { cardId, colIndex, itemId, habitId } = target.dataset;
+
+            switch(action) {
+                case 'addChecklistItem':
+                    dashboardData.cards[cardId].columns[colIndex].items.push({id: `item-${Date.now()}`, text: 'New Item', completed: false});
+                    renderDashboard(); debouncedSave(); break;
+                case 'deleteChecklistItem':
+                    dashboardData.cards[cardId].columns[colIndex].items = dashboardData.cards[cardId].columns[colIndex].items.filter(item => item.id !== itemId);
+                    renderDashboard(); saveData(); break;
+                case 'addHabit':
+                    dashboardData.habits.push({ id: `habit-${Date.now()}`, name: 'New Habit', checked: Array(7).fill(false) });
+                    renderDashboard(); saveData(); break;
+                case 'deleteHabit':
+                    dashboardData.habits = dashboardData.habits.filter(habit => habit.id !== habitId);
+                    renderDashboard(); saveData(); break;
+                case 'triggerImageUpload':
+                    target.querySelector('.file-input').click(); break;
+                case 'prevMonth':
+                    currentMonth.setMonth(currentMonth.getMonth() - 1);
+                    renderDashboard(); break;
+                case 'nextMonth':
+                    currentMonth.setMonth(currentMonth.getMonth() + 1);
+                    renderDashboard(); break;
+                case 'openDateModal':
+                    selectedDateString = target.dataset.date;
+                    modalTitle.textContent = new Date(selectedDateString + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                    renderModalTaskList();
+                    modal.classList.add('visible'); break;
+            }
+        });
+
+        dashboardContent.addEventListener('change', e => {
+            const target = e.target.closest('[data-action]');
+            if (!target) return;
+            const action = target.dataset.action;
+            const { cardId, colIndex, itemId, habitId, dayIndex } = target.dataset;
+
+            if (action === 'toggleChecklistItem') {
+                const item = dashboardData.cards[cardId].columns[colIndex].items.find(i => i.id === itemId);
+                if (item) item.completed = target.checked;
+                renderDashboard(); saveData();
+            } else if (action === 'updateHabitCheck') {
+                const habit = dashboardData.habits.find(h => h.id === habitId);
+                if (habit) habit.checked[dayIndex] = target.checked;
+                saveData();
+            } else if (action === 'updateImage') {
+                const file = target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = evt => {
+                        dashboardData.cards[cardId].columns[colIndex].imageSrc = evt.target.result;
+                        renderDashboard(); saveData();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        });
+
+        dashboardContent.addEventListener('blur', e => {
+            const el = e.target;
+            if (!el.isContentEditable) return;
+            const action = el.dataset.action;
+            const { cardId, colIndex, itemId, habitId } = el.dataset;
+            const newText = el.textContent;
+
+            switch(action) {
+                case 'updateMainTitle': dashboardData.mainTitle = newText; break;
+                case 'updateCardTitle': dashboardData.cards[cardId].title = newText; break;
+                case 'updateColumnSubtitle': dashboardData.cards[cardId].columns[colIndex].subtitle = newText; break;
+                case 'updateChecklistItemText': dashboardData.cards[cardId].columns[colIndex].items.find(i => i.id === itemId).text = newText; break;
+                case 'updateHabitName': dashboardData.habits.find(h => h.id === habitId).name = newText; break;
+            }
+             debouncedSave();
+        }, true);
+        
+        // --- Modal Functions & Event Listeners ---
+        const renderModalTaskList = () => {
+            modalList.innerHTML = '';
+            const tasks = dashboardData.tasksByDate[selectedDateString] || [];
+            if (tasks.length === 0) {
+                modalList.innerHTML = '<li>No tasks for this day. Add one below!</li>';
+                return;
+            }
+            tasks.forEach(task => {
+                const li = document.createElement('li');
+                li.className = task.completed ? 'completed' : '';
+                li.innerHTML = `
+                    <input type="checkbox" data-task-id="${task.id}" ${task.completed ? 'checked' : ''}>
+                    <span>${task.text}</span>
+                    <button class="delete-item-btn" data-task-id="${task.id}"><i class="fa-solid fa-xmark"></i></button>`;
+                modalList.appendChild(li);
+            });
+        };
+
+        modalForm.addEventListener('submit', e => {
+            e.preventDefault();
+            const input = e.target.querySelector('input');
+            const text = input.value.trim();
+            if (text) {
+                if (!dashboardData.tasksByDate[selectedDateString]) {
+                    dashboardData.tasksByDate[selectedDateString] = [];
+                }
+                dashboardData.tasksByDate[selectedDateString].push({ id: `task-${Date.now()}`, text, completed: false });
+                input.value = '';
+                renderModalTaskList();
+                renderDashboard();
+                saveData();
+            }
+        });
+        
+        modalList.addEventListener('click', e => {
+            if(e.target.closest('.delete-item-btn')) {
+                const taskId = e.target.closest('button').dataset.taskId;
+                dashboardData.tasksByDate[selectedDateString] = dashboardData.tasksByDate[selectedDateString].filter(t => t.id !== taskId);
+            } else if (e.target.type === 'checkbox') {
+                 const taskId = e.target.dataset.taskId;
+                 const task = dashboardData.tasksByDate[selectedDateString].find(t => t.id === taskId);
+                 if (task) task.completed = e.target.checked;
+            } else { return; }
+            renderModalTaskList();
+            renderDashboard();
+            saveData();
+        });
+
+        closeModalBtn.addEventListener('click', () => modal.classList.remove('visible'));
+        modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('visible'); });
+
+        // --- SortableJS ---
+        const initializeSortable = () => {
+            new Sortable(dashboardContent, {
+                animation: 250,
+                handle: '.card-header h2',
+                ghostClass: 'sortable-ghost',
+                onEnd: (evt) => {
+                    const movedItem = dashboardData.cardOrder.splice(evt.oldIndex, 1)[0];
+                    dashboardData.cardOrder.splice(evt.newIndex, 0, movedItem);
+                    saveData();
+                },
+            });
+        };
+
+        // --- 7. AUTHENTICATION GATE & INITIALIZATION ---
+        if (!auth || !db) {
+            console.error("Firebase is not initialized. Make sure app.js is loaded correctly.");
+            return;
+        }
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                const params = new URLSearchParams(window.location.search);
+                pageId = params.get('id');
+                if (pageId) {
+                    loadData();
+                } else {
+                    document.body.innerHTML = '<h1>Error: Page ID missing. Please go back to the dashboard.</h1>';
+                }
+            } else {
+                window.location.href = 'index.html';
+            }
+        });
+    });
+    </script>
+</body>
+</html>

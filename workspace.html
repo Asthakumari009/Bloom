@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Hub - Your Personal Workspace</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;600&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+    <script src="app.js"></script>
+
+    <style>
+        :root {
+            /* Aesthetic & Cute Palette */
+            --font-heading: 'Lora', serif;
+            --font-body: 'Poppins', sans-serif;
+            --bg-main: #FBF9F6; /* Soft cream */
+            --bg-content: #FFFFFF; /* Clean white */
+            --bg-sidebar: #F0EDE9; /* Slightly darker cream for sidebar */
+            --text-primary: #4A4A4A; /* Soft dark grey */
+            --text-secondary: #8B8B8B; /* Muted grey */
+            --accent-primary: #9C88FF; /* Soft Lavender */
+            --accent-secondary: #FFC0CB; /* Pastel Pink */
+            --border-color: #E8E2D9; /* Light, warm border */
+            --shadow-color: rgba(0, 0, 0, 0.08); /* Lighter shadow */
+            --radius-md: 12px; /* Increased radius for softness */
+            --radius-lg: 20px; /* Increased radius for softness */
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            font-size: 16px; /* Base font size */
+        }
+
+        .sidebar {
+            width: 280px; /* Slightly wider sidebar */
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            padding: 30px 20px; /* More vertical padding */
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            box-shadow: 2px 0 10px var(--shadow-color); /* Soft shadow on sidebar */
+        }
+        
+        .sidebar-header {
+            margin-bottom: 40px; /* More space */
+        }
+        
+        .sidebar-header .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px; /* Increased gap */
+            text-decoration: none;
+            background-color: var(--bg-content);
+            color: var(--text-primary);
+            padding: 12px 20px; /* Larger padding */
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            box-shadow: 0 4px 10px var(--shadow-color); /* Softer shadow */
+            transition: all 0.3s ease; /* Smoother transition */
+            border: 1px solid var(--border-color);
+            font-size: 0.95rem;
+        }
+
+        .back-button:hover {
+            transform: translateY(-3px); /* More noticeable lift */
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1); /* Enhanced shadow on hover */
+            background-color: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+
+        .menu-title {
+            font-family: var(--font-heading);
+            font-size: 1.1rem; /* Slightly larger */
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 15px; /* More space */
+            margin-top: 25px; /* More space */
+            letter-spacing: 0.05em; /* A bit of letter spacing */
+        }
+
+        .menu-list {
+            list-style: none;
+        }
+
+        .menu-item {
+            padding: 15px; /* Larger hit area */
+            border-radius: var(--radius-md);
+            margin-bottom: 8px; /* More separation */
+            cursor: pointer;
+            font-weight: 400;
+            transition: background-color 0.2s, color 0.2s, transform 0.1s ease-out; /* Add transform */
+            display: flex;
+            align-items: center;
+            gap: 12px; /* Increased gap */
+            font-size: 1rem;
+        }
+
+        .menu-item:hover {
+            background-color: #EFEAE5; /* Lighter hover for soft theme */
+            transform: translateX(5px); /* Gentle slide effect */
+        }
+
+        .menu-item.active {
+            background-color: var(--accent-primary);
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 4px 10px var(--shadow-color); /* Active item shadow */
+            transform: none; /* No slide for active */
+        }
+        
+        .menu-item.active:hover {
+            background-color: var(--accent-primary); /* Keep color on hover for active */
+        }
+
+        .main-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            border-radius: var(--radius-lg); /* Rounded content area */
+            margin: 20px; /* Margin around main content */
+            background-color: var(--bg-content);
+            box-shadow: 0 10px 30px var(--shadow-color); /* Main content shadow */
+        }
+
+        .header {
+            height: 280px; /* Slightly taller header */
+            position: relative;
+            background-size: cover;
+            background-position: center;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 40px; /* More padding */
+            border-top-left-radius: var(--radius-lg); /* Match main content radius */
+            border-top-right-radius: var(--radius-lg);
+            overflow: hidden; /* Ensure overlay and title are contained */
+        }
+        
+        .header-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 60%); /* Stronger gradient */
+            z-index: 0; /* Behind content */
+        }
+
+        .header h1 {
+            font-family: var(--font-heading);
+            font-size: 3.5rem; /* Larger title */
+            z-index: 1;
+            outline: none;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.4); /* Text shadow for pop */
+            font-weight: 600;
+        }
+
+        #change-cover-btn {
+            position: absolute;
+            bottom: 25px; /* Adjust position */
+            right: 25px; /* Adjust position */
+            z-index: 1;
+            background-color: rgba(255, 255, 255, 0.25); /* Slightly less transparent */
+            backdrop-filter: blur(8px); /* More blur for glassy effect */
+            border: 1px solid rgba(255, 255, 255, 0.4); /* Stronger border */
+            color: white;
+            padding: 10px 18px; /* Larger padding */
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s ease;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        #change-cover-btn:hover {
+            background-color: rgba(255, 255, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .page-section {
+            padding: 50px; /* More generous padding */
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px; /* More space */
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 20px; /* More padding */
+        }
+
+        .page-title {
+            font-family: var(--font-heading);
+            font-size: 2.5rem; /* Larger title */
+            color: var(--text-primary);
+        }
+
+        .styled-button {
+            background-color: var(--accent-primary);
+            color: white;
+            border: none;
+            padding: 12px 25px; /* Larger padding */
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            font-size: 1rem;
+            box-shadow: 0 4px 10px var(--shadow-color); /* Button shadow */
+        }
+        
+        .styled-button:hover {
+            background-color: #7A6BE0; /* Slightly darker lavender on hover */
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* Slightly larger cards */
+            gap: 30px; /* More gap between cards */
+        }
+
+        .card {
+            background-color: var(--bg-content);
+            padding: 25px; /* More padding */
+            border-radius: var(--radius-lg);
+            box-shadow: 0 6px 20px var(--shadow-color); /* Deeper, softer shadow */
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-8px); /* More prominent lift */
+            box-shadow: 0 12px 30px rgba(0,0,0,0.15); /* Stronger shadow on hover */
+        }
+        
+        .card h3 { 
+            font-family: var(--font-heading); 
+            font-size: 1.5rem; /* Larger card titles */
+            margin-bottom: 12px; 
+            color: var(--accent-primary); /* Accent color for card titles */
+        }
+        .card p { 
+            color: var(--text-secondary); 
+            font-size: 0.95rem; /* Slightly larger text */
+            line-height: 1.6; /* Better readability */
+        }
+        .card .timestamp { 
+            font-size: 0.75rem; 
+            color: #A0A0A0; 
+            margin-top: 20px; 
+            font-style: italic;
+        }
+
+        .notepad-container textarea {
+            width: 100%;
+            min-height: 500px; /* Taller notepad */
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 25px; /* More padding */
+            font-family: var(--font-body);
+            font-size: 1.05rem; /* Slightly larger text */
+            resize: vertical;
+            line-height: 1.7; /* Better readability */
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.03); /* Subtle inner shadow */
+        }
+        .notepad-container textarea:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(156, 136, 255, 0.2); /* Focus ring */
+        }
+
+        /* Goals specific styles */
+        .goals-container {
+            background-color: var(--bg-content);
+            border-radius: var(--radius-lg);
+            padding: 30px;
+            box-shadow: 0 4px 15px var(--shadow-color);
+        }
+
+        .goal-list {
+            list-style: none;
+            margin-bottom: 30px;
+        }
+
+        .goal-list li {
+            display: flex;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px dashed var(--border-color);
+            font-size: 1.05rem;
+            color: var(--text-primary);
+        }
+        .goal-list li:last-child {
+            border-bottom: none;
+        }
+        .goal-list li.completed {
+            color: var(--text-secondary);
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+        .goal-list li input[type="checkbox"] {
+            margin-right: 15px;
+            width: 22px;
+            height: 22px;
+            accent-color: var(--accent-primary); /* Stylish checkbox */
+            cursor: pointer;
+        }
+        .goal-list li span {
+            flex-grow: 1;
+            padding: 5px 0;
+            outline: none; /* Remove default outline */
+            transition: background-color 0.2s;
+        }
+        .goal-list li span:focus {
+            background-color: #F8F4FF; /* Light background on focus */
+            border-radius: 4px;
+        }
+        .goal-list li button {
+            background: none;
+            border: none;
+            color: var(--accent-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            margin-left: 15px;
+            transition: transform 0.2s ease, color 0.2s;
+        }
+        .goal-list li button:hover {
+            color: #E06F8D; /* Darker pink on hover */
+            transform: scale(1.1);
+        }
+        .goals-container form {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .goals-container form input[type="text"] {
+            flex-grow: 1;
+            padding: 12px 18px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+        }
+        .goals-container form input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(156, 136, 255, 0.2);
+        }
+        .goals-container form .styled-button {
+            padding: 12px 25px;
+        }
+
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.65); /* Slightly darker overlay */
+            backdrop-filter: blur(8px); /* More blur */
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: var(--bg-content);
+            padding: 40px; /* More padding */
+            border-radius: var(--radius-lg);
+            width: 90%;
+            max-width: 650px; /* Slightly wider modal */
+            box-shadow: 0 15px 40px rgba(0,0,0,0.25); /* Stronger modal shadow */
+            border: 1px solid var(--border-color);
+            animation: fadeIn 0.3s ease-out;
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .modal-title { 
+            font-family: var(--font-heading); 
+            font-size: 1.8rem; 
+            color: var(--accent-primary); 
+            font-weight: 600;
+        }
+        .close-button { 
+            background: none; 
+            border: none; 
+            font-size: 2rem; /* Larger close button */
+            cursor: pointer; 
+            color: var(--text-secondary); 
+            transition: color 0.2s, transform 0.2s;
+        }
+        .close-button:hover { 
+            color: var(--accent-secondary); 
+            transform: rotate(90deg); /* Cute spin effect */
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 0.95rem; color: var(--text-primary); }
+        .form-group input, .form-group textarea {
+            width: 100%; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); font-size: 1rem;
+            font-family: var(--font-body);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(156, 136, 255, 0.2);
+        }
+        .modal-content .styled-button {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1rem;
+            margin-top: 10px;
+        }
+
+        /* Toast Styles */
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1001;
+        }
+        .toast {
+            background-color: var(--text-primary);
+            color: white;
+            padding: 12px 25px; /* Larger toast */
+            border-radius: var(--radius-md);
+            margin-top: 10px;
+            opacity: 0.95; /* Slightly less opaque */
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-out;
+            box-shadow: 0 4px 10px var(--shadow-color);
+            animation: slideInRight 0.3s forwards;
+            font-size: 0.95rem;
+        }
+        .toast-success { background-color: #7ED957; } /* Softer green */
+        .toast-error { background-color: #FF6B6B; } /* Softer red */
+        .toast-info { background-color: #87CEEB; } /* Softer blue */
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 0.95; }
+        }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <a href="index.html" class="back-button">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Back</span>
+            </a>
+        </div>
+        <h3 class="menu-title">Workspace</h3>
+        <ul class="menu-list">
+            <li class="menu-item active" data-action="navigate" data-section="dashboard"><i class="fa-solid fa-table-columns"></i><span>Dashboard</span></li>
+            <li class="menu-item" data-action="navigate" data-section="notepad"><i class="fa-solid fa-clipboard"></i><span>Notepad</span></li>
+            <li class="menu-item" data-action="navigate" data-section="goals"><i class="fa-solid fa-bullseye"></i><span>Goals</span></li>
+        </ul>
+    </aside>
+
+    <main class="main-content" id="main-content">
+        <header class="header" id="main-header">
+            <div class="header-overlay"></div>
+            <h1 id="workspace-title" contenteditable="true">Study Hub</h1>
+            <button id="change-cover-btn" data-action="changeCover">Change Cover</button>
+        </header>
+        </main>
+    
+    <div id="modal-container"></div>
+    <div id="toast-container"></div>
+    
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- 1. GLOBAL STATE & FIREBASE REFS ---
+    let pageId = null;
+    let state = {}; 
+
+    const auth = window.firebaseAuth;
+    const db = window.firebaseDb;
+
+    const initialState = {
+        title: 'My Study Workspace',
+        activeSection: 'dashboard',
+        headerCover: 'https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?q=80&w=2072&auto=format&fit=crop',
+        subjects: [{ id: `subject-${Date.now()}`, title: 'Operating Systems', notes: 'Complete before 23rd July.', createdAt: Date.now(), checklist: [{ id: `task-${Date.now()}`, text: 'Deadlocks', completed: true }, { id: `task-${Date.now()+1}`, text: 'Paging', completed: false }], flashcards: [{id: `flash-${Date.now()}`, term: 'Deadlock', def: 'A situation where two or more competing actions are waiting for the other to finish, and thus neither ever does.'}] }],
+        notepadContent: 'This is a persistent notepad. Your text is saved automatically as you type!',
+        goals: [{id: `goal-${Date.now()}`, text: 'Finish OS revision', completed: true}, {id: `goal-${Date.now()+1}`, text: 'Build a new project', completed: false}],
+    };
+    
+    // --- 2. DOM & UTILITY REFERENCES ---
+    const mainContent = document.getElementById('main-content');
+    const modalContainer = document.getElementById('modal-container');
+    const toastContainer = document.getElementById('toast-container');
+    const mainHeaderTitle = document.getElementById('workspace-title');
+    let currentFlashcardDeckId = null;
+    let currentFlashcardIndex = 0;
+
+    const debounce = (func, delay) => {
+        let timeout;
+        return (...args) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), delay);
+        };
+    };
+    
+    // --- 3. FIREBASE DATA FUNCTIONS ---
+    const saveData = () => {
+        if (pageId && window.saveTemplateData) {
+            const dataToSave = { ...state, title: mainHeaderTitle.textContent };
+            window.saveTemplateData(pageId, dataToSave);
+            // Sending notification to main dashboard
+            localStorage.setItem('studyHubUpdate', JSON.stringify({
+                pageId: pageId,
+                title: state.title,
+                timestamp: Date.now(),
+                message: `Workspace "${state.title}" was updated.`
+            }));
+        }
+    };
+    
+    const debouncedSave = debounce(saveData, 1500);
+
+    const loadData = async () => {
+        if (!auth.currentUser || !pageId) return;
+        const docRef = db.collection('users').doc(auth.currentUser.uid).collection('templatePages').doc(pageId);
+        try {
+            const doc = await docRef.get();
+            if (doc.exists) {
+                const firestorePage = doc.data();
+                
+                state = { ...initialState, ...firestorePage.data };
+                
+                if (firestorePage.name) {
+                    state.title = firestorePage.name;
+                }
+            } else {
+                state = JSON.parse(JSON.stringify(initialState)); 
+            }
+            render();
+        } catch (error) {
+            console.error("Error loading workspace data:", error);
+            mainContent.innerHTML = "<h1>Error loading workspace. Please go back and try again.</h1>";
+        }
+    };
+
+    // --- 4. RENDER ENGINE & TEMPLATES ---
+    const render = () => requestAnimationFrame(() => {
+        renderHeader();
+        renderActiveSection();
+        updateActiveMenuItem();
+    });
+
+    const renderHeader = () => {
+        document.getElementById('main-header').style.backgroundImage = state.headerCover ? `url(\`${state.headerCover}\`)` : '';
+        mainHeaderTitle.textContent = state.title;
+    };
+
+    const renderActiveSection = () => {
+        const existingSection = mainContent.querySelector('.page-section');
+        if (existingSection) existingSection.remove();
+        const section = document.createElement('section');
+        section.id = state.activeSection;
+        section.className = 'page-section active';
+        section.innerHTML = sectionRenderers[state.activeSection] ? sectionRenderers[state.activeSection]() : '<div>Section not found</div>';
+        mainContent.appendChild(section);
+        if (state.activeSection === 'dashboard') {
+            new Sortable(mainContent.querySelector('.card-grid'), { animation: 150 });
+        }
+    };
+
+    const updateActiveMenuItem = () => {
+        document.querySelectorAll('.menu-item').forEach(item => {
+            item.classList.toggle('active', item.dataset.section === state.activeSection);
+        });
+    };
+    
+    const showToast = (message, type = 'success') => {
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+        toastContainer.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+    
+    // --- TEMPLATE LITERALS FOR EACH SECTION ---
+    const sectionRenderers = {
+        dashboard: () => `
+            <div class="page-header">
+                <h2 class="page-title">Study Dashboard</h2>
+                <button class="styled-button" data-action="showAddSubjectModal">+ Add Subject</button>
+            </div>
+            <div class="card-grid">
+                ${(state.subjects || []).map(subject => `
+                    <div class="card" data-action="openSubject" data-id="${subject.id}">
+                        <h3>${subject.title}</h3>
+                        <p>${subject.notes}</p>
+                        <p class="timestamp">Created: ${new Date(subject.createdAt).toLocaleDateString()}</p>
+                    </div>
+                `).join('') || '<p>No subjects yet. Click "+ Add Subject" to start!</p>'}
+            </div>
+        `,
+        notepad: () => `
+            <div class="page-header"><h2 class="page-title">Notepad</h2></div>
+            <div class="notepad-container">
+                <textarea id="notepad-textarea" placeholder="Start typing...">${state.notepadContent || ''}</textarea>
+            </div>
+        `,
+        goals: () => `
+            <div class="page-header"><h2 class="page-title">My Goals</h2></div>
+            <div class="goals-container">
+                <ul class="goal-list">
+                ${(state.goals || []).map(goal => `
+                    <li class="${goal.completed ? 'completed' : ''}">
+                        <input type="checkbox" data-action="toggleGoal" data-id="${goal.id}" ${goal.completed ? 'checked' : ''}>
+                        <span contenteditable="true" data-action="updateGoalText" data-id="${goal.id}">${goal.text}</span>
+                        <button data-action="deleteGoal" data-id="${goal.id}">×</button>
+                    </li>
+                `).join('')}
+                </ul>
+                <form data-action="addGoal">
+                    <input type="text" name="goalText" placeholder="Add a new goal..." required>
+                    <button type="submit" class="styled-button">Add Goal</button>
+                </form>
+            </div>
+        `
+        
+    };
+    
+    // --- MODAL TEMPLATES ---
+    const modalTemplates = {
+        addSubject: () => `
+            <div class="modal-overlay" data-action="closeModal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 class="modal-title">Add New Subject</h3>
+                        <button class="close-button" data-action="closeModal">×</button>
+                    </div>
+                    <form data-action="createSubject">
+                        <div class="form-group">
+                            <label for="subject-title">Subject Title</label>
+                            <input type="text" id="subject-title" name="title" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="subject-notes">Quick Notes</label>
+                            <textarea id="subject-notes" name="notes"></textarea>
+                        </div>
+                        <button type="submit" class="styled-button">Create Subject</button>
+                    </form>
+                </div>
+            </div>
+        `
+        
+    };
+
+    const showModal = (modalHTML) => {
+        modalContainer.innerHTML = modalHTML;
+    };
+    const closeModal = () => {
+        modalContainer.innerHTML = '';
+    };
+
+    // --- 5. EVENT HANDLING (EVENT DELEGATION) ---
+    document.body.addEventListener('click', e => {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        const id = target.dataset.id;
+        
+        if (action === 'navigate') {
+            state.activeSection = target.dataset.section;
+            debouncedSave();
+            render();
+        }
+        
+        if (action === 'changeCover') {
+            const url = prompt('Enter image URL:', state.headerCover);
+            if (url) {
+                state.headerCover = url;
+                renderHeader();
+                debouncedSave();
+            }
+        }
+        
+        if (action === 'showAddSubjectModal') showModal(modalTemplates.addSubject());
+        if (action === 'closeModal') closeModal();
+        
+        if (action === 'toggleGoal') {
+            const goal = state.goals.find(g => g.id === id);
+            if(goal) goal.completed = !goal.completed;
+            render(); debouncedSave();
+        }
+        if(action === 'deleteGoal') {
+            state.goals = state.goals.filter(g => g.id !== id);
+            render(); debouncedSave();
+        }
+
+    });
+
+    document.body.addEventListener('submit', e => {
+        e.preventDefault();
+        const form = e.target.closest('form[data-action]');
+        if (!form) return;
+        const action = form.dataset.action;
+        const formData = new FormData(form);
+
+        if (action === 'createSubject') {
+            const newSubject = {
+                id: `subject-${Date.now()}`,
+                title: formData.get('title'),
+                notes: formData.get('notes'),
+                createdAt: Date.now(),
+                checklist: [],
+                flashcards: []
+            };
+            state.subjects.push(newSubject);
+            render(); debouncedSave(); closeModal();
+        }
+        
+        if (action === 'addGoal') {
+            const text = formData.get('goalText');
+            if(text) {
+                state.goals.push({ id: `goal-${Date.now()}`, text, completed: false });
+                render(); debouncedSave();
+            }
+        }
+    });
+
+    document.body.addEventListener('input', e => {
+        if (e.target.id === 'notepad-textarea') {
+            state.notepadContent = e.target.value;
+            debouncedSave();
+        }
+    });
+    
+    document.body.addEventListener('blur', e => {
+        const target = e.target;
+        if (!target.isContentEditable) return;
+        
+        const action = target.dataset.action;
+        const id = target.dataset.id;
+        const newText = target.textContent.trim();
+        
+        if (action === 'updateGoalText') {
+            const goal = state.goals.find(g => g.id === id);
+            if(goal && goal.text !== newText) {
+                goal.text = newText;
+                debouncedSave();
+            }
+        }
+    }, true);
+
+
+    mainHeaderTitle.addEventListener('blur', () => {
+        const newTitle = mainHeaderTitle.textContent.trim();
+        if (newTitle && state.title !== newTitle) {
+            state.title = newTitle;
+            debouncedSave();
+        }
+    });
+
+    // --- 6. AUTHENTICATION GATE & INITIALIZATION ---
+    if (!auth || !db) {
+        console.error("Firebase is not initialized. Make sure app.js is loaded correctly.");
+        return;
+    }
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            const params = new URLSearchParams(window.location.search);
+            pageId = params.get('id');
+            if (pageId) {
+                loadData();
+            } else {
+                document.body.innerHTML = '<h1>Error: Page ID missing. Please return to your dashboard.</h1>';
+            }
+        } else {
+            window.location.href = 'index.html';
+        }
+    });
+});
+</script>
+</body>
+</html>

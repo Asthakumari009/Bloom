@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onboarding | Bloom</title>
+    
+    <!-- Using Feather Icons for a cleaner look -->
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    
+    <!-- Firebase SDKs (Required for Firebase to work) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+    <!-- Our Shared Firebase Initializer from the main app -->
+    <!-- This MUST be included BEFORE your template's script -->
+    <script src="app.js"></script>
+
+    <style>
+        :root {
+            /* Color Palette */
+            --bg-main: #2c3e50; /* Dark slate blue */
+            --bg-module: #34495e; /* Slightly lighter slate */
+            --text-primary: #ecf0f1; /* Off-white */
+            --text-secondary: #bdc3c7; /* Light grey */
+            --accent-primary: #8e44ad; /* Vibrant purple */
+            --accent-secondary: #1abc9c; /* Teal */
+            --border-color: #46627f;
+            --shadow-color: rgba(0, 0, 0, 0.2);
+
+            /* Sizing & Spacing */
+            --sidebar-width: 240px;
+            --border-radius-large: 16px;
+            --border-radius-small: 10px;
+        }
+
+        /* Basic Reset & Typography */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            transition: background-color 0.3s ease;
+        }
+
+        .app-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--bg-module);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border-color);
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .profile-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        .profile-btn img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid var(--accent-primary);
+        }
+
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 12px 15px;
+            border-radius: var(--border-radius-small);
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-weight: 500;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .nav-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background-color: var(--accent-primary);
+            color: white;
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main-content {
+            flex-grow: 1;
+            padding: 30px 40px;
+            overflow-y: auto;
+        }
+
+        .main-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .main-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        /* Interactive Hub Grid */
+        .interactive-hub {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+        }
+
+        .onboarding-module {
+            background-color: var(--bg-module);
+            border-radius: var(--border-radius-large);
+            padding: 25px;
+            box-shadow: 0 4px 15px var(--shadow-color);
+            border: 1px solid var(--border-color);
+        }
+        
+        .onboarding-module h4 {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Carousel Module */
+        .carousel-module {
+            grid-column: 1 / -1; /* Span full width */
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 30px;
+        }
+        .carousel {
+            flex-grow: 1;
+            position: relative;
+            height: 120px;
+            overflow: hidden;
+        }
+        .carousel-item {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(20px);
+            transition: opacity 0.4s ease, transform 0.4s ease, visibility 0.4s;
+        }
+        .carousel-item.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .carousel-item i {
+            width: 48px;
+            height: 48px;
+            color: var(--accent-secondary);
+        }
+        .carousel-item h3 {
+            flex-grow: 1;
+            font-size: 1.5rem;
+        }
+        .cta-btn {
+            background-color: var(--accent-primary);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: var(--border-radius-small);
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .cta-btn:hover {
+            background-color: #7b2a9d;
+        }
+        .carousel-controls button {
+            background: none;
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+        .carousel-controls button:hover {
+            background-color: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+        .carousel-controls { display: flex; flex-direction: column; gap: 10px; }
+
+        /* Checklist Module */
+        .progress-checklist {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .progress-checklist label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .progress-checklist input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--accent-secondary);
+        }
+
+        /* Goals Module */
+        .goals-module {
+            grid-column: 1 / -1; /* Span full width on smaller screens */
+        }
+        .goal-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .goal-item .goal-emoji { font-size: 1.5rem; }
+        .goal-item input {
+            flex-grow: 1;
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-small);
+            padding: 12px;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+        .goal-item input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+        .add-goal-btn {
+            background: none;
+            border: 1px dashed var(--border-color);
+            color: var(--text-secondary);
+            width: 100%;
+            padding: 12px;
+            border-radius: var(--border-radius-small);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 10px;
+            transition: all 0.2s;
+        }
+        .add-goal-btn:hover {
+            background-color: rgba(255,255,255,0.05);
+            color: var(--text-primary);
+            border-color: var(--accent-primary);
+        }
+
+        /* Theme Module */
+        .theme-toggles {
+            display: flex;
+            gap: 10px;
+        }
+        .theme-toggles button {
+            flex-grow: 1;
+            padding: 12px;
+            border-radius: var(--border-radius-small);
+            border: 1px solid var(--border-color);
+            background: none;
+            color: var(--text-secondary);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .theme-toggles button.active {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+        .theme-toggles button:not(.active):hover {
+            border-color: var(--accent-primary);
+        }
+
+        /* Shortcuts Module */
+        .shortcut-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .shortcut-buttons button {
+            background-color: rgba(255,255,255,0.05);
+            border: none;
+            padding: 12px;
+            border-radius: var(--border-radius-small);
+            color: var(--text-primary);
+            text-align: left;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .shortcut-buttons button:hover {
+            background-color: var(--accent-primary);
+        }
+
+        /* AI Module */
+        .ai-module p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Floating Action Button */
+        .ai-fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(45deg, var(--accent-primary), #a663cc);
+            border-radius: 50%;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out;
+        }
+        .ai-fab:hover {
+            transform: scale(1.1);
+        }
+        .ai-fab i {
+            width: 28px;
+            height: 28px;
+        }
+        
+        /* Mobile Styles */
+        .mobile-only { display: none; }
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .sidebar {
+                position: fixed;
+                left: 0; top: 0; height: 100%;
+                z-index: 1000;
+                transform: translateX(-100%);
+            }
+            .sidebar.is-open {
+                transform: translateX(0);
+            }
+            .mobile-only { display: block; }
+            #sidebar-close-btn, #sidebar-open-btn {
+                background: none; border: none; color: var(--text-primary);
+                cursor: pointer;
+            }
+            .main-content { padding: 20px; }
+            .main-header { justify-content: space-between; }
+            .interactive-hub { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- ===== SIDEBAR ===== -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <button class="profile-btn" aria-label="Profile Settings">
+                    <img src="https://i.pravatar.cc/40?img=1" alt="Profile">
+                </button>
+                <button id="sidebar-close-btn" class="mobile-only" aria-label="Close sidebar">
+                    <i data-feather="x"></i>
+                </button>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item active"><i data-feather="home"></i><span>Home</span></a>
+                <a href="index.html" class="nav-item"><i data-feather="file-plus"></i><span>New Page</span></a>
+                <a href="index.html" class="nav-item"><i data-feather="layout"></i><span>Templates</span></a>
+                <a href="index.html" class="nav-item"><i data-feather="clock"></i><span>Timer</span></a>
+            </nav>
+        </aside>
+
+        <!-- ===== MAIN CONTENT (Onboarding Hub) ===== -->
+        <main class="main-content">
+            <header class="main-header">
+                <button id="sidebar-open-btn" class="mobile-only" aria-label="Open sidebar">
+                    <i data-feather="menu"></i>
+                </button>
+                <div class="greeting">
+                    <h1>Let's Get You Set Up</h1>
+                </div>
+            </header>
+
+            <div class="interactive-hub">
+                <!-- Top Row Card: Carousel -->
+                <div class="onboarding-module carousel-module">
+                    <div id="quick-actions-carousel" class="carousel">
+                        <div class="carousel-item active">
+                            <i data-feather="file-plus"></i><h3>Create your first page</h3><button class="cta-btn">Create</button>
+                        </div>
+                        <div class="carousel-item">
+                            <i data-feather="layout"></i><h3>Choose a template</h3><button class="cta-btn">Browse</button>
+                        </div>
+                        <div class="carousel-item">
+                            <i data-feather="clock"></i><h3>Start a timer</h3><button class="cta-btn">Begin</button>
+                        </div>
+                        <div class="carousel-item">
+                            <i data-feather="check-square"></i><h3>Set your goals</h3><button class="cta-btn">Set</button>
+                        </div>
+                    </div>
+                    <div class="carousel-controls">
+                        <button id="carousel-prev" aria-label="Previous suggestion"><i data-feather="chevron-left"></i></button>
+                        <button id="carousel-next" aria-label="Next suggestion"><i data-feather="chevron-right"></i></button>
+                    </div>
+                </div>
+
+                <!-- Top Row Card: Progress Checklist -->
+                <div class="onboarding-module checklist-module">
+                    <h4>Your Progress</h4>
+                    <ul class="progress-checklist">
+                        <li><label><input type="checkbox" id="check-profile"> Setup your profile</label></li>
+                        <li><label><input type="checkbox" id="check-page"> Create a page</label></li>
+                        <li><label><input type="checkbox" id="check-timer"> Start a timer</label></li>
+                        <li><label><input type="checkbox" id="check-template"> Add a template</label></li>
+                    </ul>
+                </div>
+
+                <!-- Top Row Card: AI Assistant -->
+                <div class="onboarding-module ai-module">
+                    <h4><i data-feather="sparkles"></i> AI Assistant</h4>
+                    <p>Not sure where to start? Try asking me to "Plan my week" or "Start a pomodoro".</p>
+                </div>
+
+                <!-- Bottom Row Card: Weekly Goals -->
+                <div class="onboarding-module goals-module">
+                    <h4>This Week’s Goals</h4>
+                    <div class="goal-item"><span class="goal-emoji">🎯</span><input type="text" placeholder="e.g., Finalize project proposal..."></div>
+                    <div class="goal-item"><span class="goal-emoji">📚</span><input type="text" placeholder="e.g., Read Chapter 5 of textbook..."></div>
+                    <div class="goal-item"><span class="goal-emoji">💪</span><input type="text" placeholder="e.g., Go for a run 3 times..."></div>
+                    <button class="add-goal-btn"><i data-feather="plus"></i> Add Goal</button>
+                </div>
+
+                <!-- Bottom Row Card: Quick Create -->
+                <div class="onboarding-module shortcuts-module">
+                     <h4>Quick Create</h4>
+                     <div class="shortcut-buttons">
+                        <button>Daily Planner</button>
+                        <button>To-Do List</button>
+                        <button>Brain Dump</button>
+                     </div>
+                </div>
+
+                <!-- Bottom Row Card: Theme Toggle -->
+                 <div class="onboarding-module theme-module">
+                    <h4>Theme</h4>
+                    <div class="theme-toggles">
+                        <button id="theme-dark-btn">Dark</button>
+                        <button id="theme-light-btn">Light</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- ===== FLOATING AI BUBBLE ===== -->
+        <button class="ai-fab" aria-label="Open AI Assistant">
+            <i data-feather="sparkles"></i>
+        </button>
+    </div>
+
+    <!-- This script is essential for displaying the icons -->
+    <script>
+        feather.replace();
+    </script>
+    
+    <!-- Your main script logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- 1. GLOBAL STATE & FIREBASE REFS ---
+            let currentUser = null;
+            let docRef = null; // Will reference users/{userId}
+            let state = {};   // Will hold the onboarding data
+
+            // Get the global Firebase instances initialized by app.js
+            const auth = window.firebaseAuth;
+            const db = window.firebaseDb;
+
+            // Default structure for a user's onboarding data
+            const initialState = {
+                onboarding: {
+                    checklist: { profile: false, page: false, timer: false, template: false },
+                    goals: ["", "", ""]
+                },
+                theme: 'dark' // Default theme
+            };
+
+            // --- 2. DOM ELEMENT SELECTION ---
+            const mainHeader = document.querySelector('.greeting h1');
+            const profileImg = document.querySelector('.profile-btn img');
+            // Checklist
+            const checklistItems = {
+                profile: document.getElementById('check-profile'),
+                page: document.getElementById('check-page'),
+                timer: document.getElementById('check-timer'),
+                template: document.getElementById('check-template')
+            };
+            // Goals
+            const goalInputs = document.querySelectorAll('.goals-module .goal-item input');
+            // Theme
+            const darkThemeBtn = document.getElementById('theme-dark-btn');
+            const lightThemeBtn = document.getElementById('theme-light-btn');
+            // Carousel
+            const carousel = document.getElementById('quick-actions-carousel');
+            const carouselItems = carousel.querySelectorAll('.carousel-item');
+            const prevBtn = document.getElementById('carousel-prev');
+            const nextBtn = document.getElementById('carousel-next');
+            let carouselIndex = 0;
+
+
+            // --- 3. UTILITY & FIREBASE FUNCTIONS ---
+            const debounce = (func, delay) => {
+                let timeout;
+                return (...args) => {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func.apply(this, args), delay);
+                };
+            };
+
+            const loadDataFromFirestore = async () => {
+                if (!docRef) return;
+                try {
+                    const doc = await docRef.get();
+                    if (doc.exists) {
+                        const firestoreData = doc.data();
+                        // Merge loaded data with defaults to prevent errors if some fields are missing
+                        state = {
+                            ...initialState,
+                            ...firestoreData,
+                            onboarding: {
+                                ...initialState.onboarding,
+                                ...(firestoreData.onboarding || {}),
+                                checklist: { // Deep merge for checklist
+                                    ...initialState.onboarding.checklist,
+                                    ...(firestoreData.onboarding?.checklist || {})
+                                }
+                            }
+                        };
+                        console.log("Loaded data from Firestore:", state);
+                    } else {
+                        // This case handles a brand new user whose doc might've just been created
+                        state = JSON.parse(JSON.stringify(initialState));
+                        console.log("No document found, using initial state.");
+                    }
+                    render();
+                } catch (error) {
+                    console.error("Error loading onboarding data:", error);
+                }
+            };
+
+            const saveDataToFirestore = async () => {
+                if (!docRef) return;
+                try {
+                    // Use set with merge to create/update the onboarding object safely
+                    await docRef.set({
+                        onboarding: state.onboarding
+                    }, { merge: true });
+                    console.log("Onboarding data saved to Firestore.");
+                } catch (error) {
+                    console.error("Error saving onboarding data:", error);
+                }
+            };
+
+            const saveThemeToFirestore = async (theme) => {
+                state.theme = theme;
+                renderTheme(); // Update UI immediately
+                if (!docRef) return;
+                try {
+                    // Use update to only change the theme field
+                    await docRef.update({ theme: theme });
+                    console.log(`Theme set to '${theme}' in Firestore.`);
+                } catch (error) {
+                    console.error("Error saving theme:", error);
+                }
+            };
+
+            const debouncedSave = debounce(saveDataToFirestore, 1000);
+
+            // --- 4. RENDER FUNCTIONS ---
+            const render = () => {
+                if (!currentUser) return;
+                mainHeader.textContent = `Let's Get You Set Up, ${currentUser.displayName || 'Friend'}`;
+                if (profileImg) profileImg.src = currentUser.photoURL || `https://i.pravatar.cc/40?u=${currentUser.uid}`;
+
+                renderChecklist();
+                renderGoals();
+                renderTheme();
+            };
+
+            const renderChecklist = () => {
+                for (const key in checklistItems) {
+                    if (checklistItems[key] && state.onboarding && state.onboarding.checklist) {
+                        checklistItems[key].checked = state.onboarding.checklist[key] || false;
+                    }
+                }
+            };
+
+            const renderGoals = () => {
+                goalInputs.forEach((input, index) => {
+                    if (state.onboarding && state.onboarding.goals) {
+                        input.value = state.onboarding.goals[index] || "";
+                    }
+                });
+            };
+            
+            const renderTheme = () => {
+                // This page uses a different stylesheet, so we only manage the button state
+                // and don't change the body theme variables directly.
+                darkThemeBtn.classList.toggle('active', state.theme === 'dark');
+                lightThemeBtn.classList.toggle('active', state.theme === 'light');
+            };
+
+            // --- 5. CAROUSEL LOGIC ---
+            const updateCarousel = () => {
+                carouselItems.forEach((item, index) => {
+                    item.classList.toggle('active', index === carouselIndex);
+                });
+            };
+            
+            if (prevBtn) {
+                prevBtn.addEventListener('click', () => {
+                    carouselIndex = (carouselIndex - 1 + carouselItems.length) % carouselItems.length;
+                    updateCarousel();
+                });
+            }
+
+            if (nextBtn) {
+                nextBtn.addEventListener('click', () => {
+                    carouselIndex = (carouselIndex + 1) % carouselItems.length;
+                    updateCarousel();
+                });
+            }
+
+            // --- 6. EVENT HANDLERS ---
+            // Checklist
+            Object.keys(checklistItems).forEach(key => {
+                const checkbox = checklistItems[key];
+                if (checkbox) {
+                    checkbox.addEventListener('change', () => {
+                        if (state.onboarding && state.onboarding.checklist) {
+                            state.onboarding.checklist[key] = checkbox.checked;
+                            saveDataToFirestore(); // Save immediately, no need to debounce a checkbox
+                        }
+                    });
+                }
+            });
+
+            // Goals
+            goalInputs.forEach((input, index) => {
+                input.addEventListener('input', () => {
+                    if (state.onboarding && state.onboarding.goals) {
+                        state.onboarding.goals[index] = input.value;
+                        debouncedSave();
+                    }
+                });
+            });
+            
+            // Theme
+            if (darkThemeBtn) darkThemeBtn.addEventListener('click', () => saveThemeToFirestore('dark'));
+            if (lightThemeBtn) lightThemeBtn.addEventListener('click', () => saveThemeToFirestore('light'));
+            
+            // --- 7. AUTHENTICATION GATE & INITIALIZATION ---
+            if (!auth || !db) {
+                console.error("Firebase is not initialized. Make sure app.js is loaded correctly.");
+                return;
+            }
+
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    currentUser = user;
+                    docRef = db.collection('users').doc(currentUser.uid);
+                    loadDataFromFirestore();
+                } else {
+                    // User is not logged in, redirect to the main app to log in
+                    console.log("User is not logged in. Redirecting to main page...");
+                    window.location.href = 'index.html';
+                }
+            });
+
+            // Final call to render icons after the script runs
+            feather.replace();
+            updateCarousel(); // Initial call
+        });
+    </script>
+</body>
+</html>

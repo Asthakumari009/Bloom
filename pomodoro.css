@@ -1,0 +1,255 @@
+/* --- Pomodoro Timer Specific Styles --- */
+
+.pomodoro-timer-card {
+    background-color: var(--pomodoro-card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 25px;
+    box-shadow: 0 4px 15px var(--pomodoro-shadow-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+    max-width: 350px;
+    margin: 0 auto;
+    position: relative;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* --- Mode Buttons --- */
+.pomodoro-modes {
+    display: flex;
+    gap: 8px;
+    background-color: var(--pomodoro-modes-bg);
+    border-radius: 18px;
+    padding: 4px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.pomodoro-mode-btn {
+    background: none;
+    border: none;
+    color: var(--pomodoro-mode-inactive-text);
+    padding: 7px 12px;
+    border-radius: 14px;
+    font-family: 'Comfortaa', cursive;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease-out;
+    user-select: none;
+}
+
+.pomodoro-mode-btn:hover:not(.active) {
+    background-color: var(--pomodoro-mode-hover-bg);
+    color: var(--pomodoro-text-color);
+    transform: translateY(-1px);
+}
+
+.pomodoro-mode-btn.active[data-mode="work"] {
+    background: var(--pomodoro-primary-active-bg);
+    color: var(--pomodoro-mode-active-work-text);
+}
+
+.pomodoro-mode-btn.active[data-mode="short-break"] {
+    background: var(--pomodoro-mode-active-short-break-bg);
+    color: var(--pomodoro-mode-active-short-break-text);
+}
+
+.pomodoro-mode-btn.active[data-mode="long-break"] {
+    background: var(--pomodoro-mode-active-long-break-bg);
+    color: var(--pomodoro-mode-active-long-break-text);
+}
+
+.pomodoro-mode-btn.active {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-3px);
+}
+
+.pomodoro-mode-btn.active:hover {
+    transform: translateY(-4px);
+}
+
+/* --- Timer Display --- */
+.pomodoro-time {
+    font-family: 'Comfortaa', cursive;
+    font-size: 4rem;
+    font-weight: 700;
+    color: var(--pomodoro-text-color);
+    letter-spacing: 1.5px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.03);
+    transition: all 0.3s ease-out;
+}
+
+/* --- Control Buttons --- */
+.pomodoro-controls {
+    display: flex;
+    gap: 12px;
+}
+
+.pomodoro-control-btn {
+    background: var(--pomodoro-control-btn-bg);
+    color: var(--pomodoro-control-btn-text);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    border: none;
+    font-family: 'Comfortaa', cursive;
+    transition: all 0.2s ease-out;
+    box-shadow: 0 3px 10px var(--pomodoro-control-btn-shadow);
+}
+
+.pomodoro-control-btn:hover {
+    filter: brightness(1.1);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px var(--pomodoro-control-btn-shadow);
+}
+
+.pomodoro-control-btn:active {
+    transform: translateY(-1px);
+    filter: brightness(0.95);
+    box-shadow: 0 1px 5px var(--pomodoro-control-btn-shadow);
+}
+
+.pomodoro-sessions {
+    font-size: 0.9rem;
+    color: var(--text-muted-color);
+    font-weight: 500;
+}
+
+/* Background Pattern */
+.pomodoro-timer-card::before,
+.quotes-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('data:image/svg+xml;utf8,<svg width="100%" height="100%" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><pattern id="pattern-zigzag" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 0 5 L 5 0 L 10 5 L 5 10 Z" fill="%23000000" opacity="0.03"/></pattern><rect x="0" y="0" width="100%" height="100%" fill="url(%23pattern-zigzag)"/></svg>') repeat;
+    background-size: 10px 10px;
+    opacity: 0.3;
+    border-radius: inherit;
+    pointer-events: none;
+}
+
+/* --- Quotes Card --- */
+.quotes-card {
+    background-color: var(--pomodoro-card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 30px;
+    box-shadow: 0 4px 15px var(--pomodoro-shadow-color);
+    width: 100%;
+    max-width: 350px;
+    margin: 0 auto;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 205px;
+    transition: transform 0.3s ease-out, box-shadow 0.3s ease-out, background-color 0.3s ease;
+}
+
+.quotes-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px var(--pomodoro-shadow-color-strong);
+}
+
+.quote-content {
+    text-align: left;
+    width: 100%;
+    color: var(--pomodoro-text-color);
+    position: relative;
+    z-index: 2;
+}
+
+@keyframes blinkCaret {
+    from, to { border-color: transparent; }
+    50% { border-color: var(--pomodoro-text-color); }
+}
+
+.quote-text {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1.1rem;
+    font-weight: 600;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    font-style: normal;
+    display: inline;
+    border-right: .15em solid var(--pomodoro-text-color);
+    animation: blinkCaret 1s step-end infinite;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.quote-author {
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--pomodoro-mode-inactive-text);
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 15px;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.quote-author.visible {
+    opacity: 1;
+}
+
+.quote-author::before {
+    content: "— ";
+}
+
+/* --- Root Defaults (Dark Mode) --- */
+:root {
+  --pomodoro-card-bg: #2C2A35;
+  --pomodoro-text-color: #E7E7EE;
+  --pomodoro-shadow-color: rgba(0, 0, 0, 0.3);
+  --pomodoro-shadow-color-strong: rgba(0, 0, 0, 0.5);
+  --pomodoro-modes-bg: #3A3845;
+  --pomodoro-mode-inactive-text: #B5B0C2;
+  --pomodoro-mode-hover-bg: #4A4455;
+  --pomodoro-primary-active-bg: #708BFA;
+  --pomodoro-mode-active-work-text: #FFFFFF;
+  --pomodoro-mode-active-short-break-bg: #B2EBF2;
+  --pomodoro-mode-active-short-break-text: #1B1B2D;
+  --pomodoro-mode-active-long-break-bg: #FFD5B2;
+  --pomodoro-mode-active-long-break-text: #1B1B2D;
+  --pomodoro-control-btn-bg: #FF8DAA;
+  --pomodoro-control-btn-text: #FFFFFF;
+  --pomodoro-control-btn-shadow: rgba(255, 141, 170, 0.5);
+  --text-muted-color: #aaa;
+  --border-color: #4A4455;
+}
+
+/* 🌞 Light Mode */
+@media (prefers-color-scheme: light) {
+  :root {
+    --pomodoro-card-bg: #FAFAFA;
+    --pomodoro-text-color: #3E3E3E;
+    --pomodoro-shadow-color: rgba(120, 100, 140, 0.15);
+    --pomodoro-shadow-color-strong: rgba(120, 100, 140, 0.25);
+    --pomodoro-modes-bg: #ECE8F0;
+    --pomodoro-mode-inactive-text: #A098B0;
+    --pomodoro-mode-hover-bg: #E3DCE8;
+    --pomodoro-primary-active-bg: #4A6CFA;
+    --pomodoro-mode-active-work-text: #FFFFFF;
+    --pomodoro-mode-active-short-break-bg: #B2EBF2;
+    --pomodoro-mode-active-short-break-text: #3E384D;
+    --pomodoro-mode-active-long-break-bg: #FFD5B2;
+    --pomodoro-mode-active-long-break-text: #3E384D;
+    --pomodoro-control-btn-bg: #FFB6C1;
+    --pomodoro-control-btn-text: #FFFFFF;
+    --pomodoro-control-btn-shadow: rgba(255, 182, 193, 0.6);
+    --text-muted-color: #888;
+    --border-color: #E6E0EB;
+  }
+}
